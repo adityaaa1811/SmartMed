@@ -58,6 +58,9 @@ export async function apiGet<T>(path: string, auth = false): Promise<T> {
   if (!response.ok) {
     throw await parseError(response);
   }
+  if (response.status === 204) {
+    return undefined as T;
+  }
   return response.json() as Promise<T>;
 }
 
@@ -83,6 +86,9 @@ export async function apiPost<T>(
 
   if (!response.ok) {
     throw await parseError(response);
+  }
+  if (response.status === 204) {
+    return undefined as T;
   }
   return response.json() as Promise<T>;
 }
