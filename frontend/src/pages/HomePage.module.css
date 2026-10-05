@@ -1,0 +1,213 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: var(--space-xl) var(--space-md) var(--space-lg);
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: var(--space-2xl);
+}
+
+.brand {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+}
+
+.logoMark {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  flex-shrink: 0;
+  box-shadow: var(--shadow-soft);
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.title {
+  margin: var(--space-xs) 0 0;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+
+.subtitle {
+  margin: var(--space-lg) 0 0;
+  max-width: 42rem;
+  font-size: 1.0625rem;
+  color: var(--color-text-secondary);
+}
+
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.card {
+  background: #fff;
+  border: 1px solid rgba(55, 85, 52, 0.12);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-soft);
+}
+
+.cardTitle {
+  margin: 0 0 var(--space-sm);
+  font-size: 1.25rem;
+  color: var(--color-text-primary);
+}
+
+.cardText {
+  margin: 0 0 var(--space-lg);
+  color: var(--color-text-secondary);
+}
+
+.statusRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
+}
+
+.statusLabel {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.badge[data-tone='ok'] {
+  background: rgba(107, 144, 113, 0.2);
+  color: var(--color-secondary);
+}
+
+.badge[data-tone='muted'] {
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+}
+
+.badge[data-tone='error'] {
+  background: rgba(15, 42, 29, 0.08);
+  color: var(--color-primary);
+  border: 1px solid rgba(15, 42, 29, 0.15);
+}
+
+.meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-md);
+  margin: 0 0 var(--space-lg);
+  padding: var(--space-md);
+  background: var(--color-background);
+  border-radius: var(--radius-md);
+}
+
+.meta dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.meta dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.errorText {
+  margin: 0 0 var(--space-md);
+  color: var(--color-secondary);
+  font-size: 0.9375rem;
+}
+
+.button {
+  appearance: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.625rem 1.25rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--color-text-on-dark);
+  background: var(--color-primary);
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.button:hover {
+  background: var(--color-secondary);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.button:active {
+  transform: translateY(1px);
+}
+
+.disclaimer {
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: var(--color-text-on-dark);
+}
+
+.disclaimer strong {
+  display: block;
+  margin-bottom: var(--space-sm);
+  font-size: 0.9375rem;
+}
+
+.disclaimer p {
+  margin: 0;
+  font-size: 0.875rem;
+  opacity: 0.92;
+  line-height: 1.55;
+}
+
+.footer {
+  margin-top: var(--space-2xl);
+  padding-top: var(--space-lg);
+  border-top: 1px solid rgba(55, 85, 52, 0.15);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.footerMuted {
+  color: var(--color-text-muted);
+}
+
+@media (min-width: 640px) {
+  .page {
+    padding-left: var(--space-xl);
+    padding-right: var(--space-xl);
+  }
+}
