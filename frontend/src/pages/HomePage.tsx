@@ -26,6 +26,7 @@ import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import CareTeamPanel from '../components/CareTeamPanel';
 import CaregiverDashboard from '../components/CaregiverDashboard';
 import DoctorDashboard from '../components/DoctorDashboard';
+import InteractionChecker from '../components/InteractionChecker';
 import styles from './HomePage.module.css';
 
 type AuthMode = 'login' | 'register';
@@ -304,7 +305,7 @@ export default function HomePage() {
       {user && <nav className={styles.roleNav} aria-label="Main navigation">
         {user.role === 'PATIENT' ? <>
           <a href="#dashboard">Dashboard</a><a href="#medications-heading">Medications</a>
-          <a href="#analytics-heading">Analytics</a><a href="#care-team">Care Team</a>
+          <a href="#analytics-heading">Analytics</a><a href="#interaction-checker">Interactions</a><a href="#care-team">Care Team</a>
         </> : user.role === 'CAREGIVER' ? <>
           <a href="#caregiver-dashboard">Dashboard</a><a href="#patients">Patients</a>
         </> : <>
@@ -409,6 +410,7 @@ export default function HomePage() {
             </section>
 
             <AnalyticsDashboard />
+            <InteractionChecker medications={medications} loading={loadingMedications} />
 
             <section className={styles.card} aria-labelledby="today-heading">
               <div className={styles.sectionHeading}>

@@ -15,9 +15,8 @@ SmartMed is a production-style web application for medication adherence, schedul
                                                │  MySQL 8             │
                                                └──────────────────────┘
 
-Future (Phase 6+):
-  DrugInteractionProvider ──► External API (RxNorm / openFDA / vendor)
-  NotificationService     ──► Email/SMS adapters (env-configured)
+Phase 7: DrugInteractionProvider ──► configured provider (mock by default)
+Future:  NotificationService     ──► Email/SMS adapters (env-configured)
 ```
 
 ## Backend layers
@@ -83,7 +82,7 @@ Indexes: FK columns, `(patient_id, scheduled_at)` on doses, `(recipient_id, crea
 
 Migrations: introduce **Flyway** in Phase 2 with versioned scripts under `backend/src/main/resources/db/migration`.
 
-## Drug interaction provider abstraction (Phase 6)
+## Drug interaction provider abstraction (Phase 7)
 
 ```text
 DrugInteractionProvider (interface)
@@ -126,10 +125,6 @@ Vite dev server proxies `/api` → `http://localhost:8080`. Production build ser
 | 3 | Medication CRUD |
 | 4 | Scheduling & dose logging |
 | 5 | Adherence analytics |
-| 6 | Interaction checker + provider |
-| 7 | Caregiver connections |
-| 8 | Doctor/clinic |
-| 9 | Notifications |
-| 10 | Reports/export |
-| 11 | Security hardening |
-| 12 | UI/UX polish |
+| 6 | Consent-based caregiver and doctor monitoring |
+| 7 | On-demand medication interaction checker |
+| 8+ | Future features (notifications, reports, and additional hardening) |

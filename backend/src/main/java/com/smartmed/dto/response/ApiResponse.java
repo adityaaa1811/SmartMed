@@ -21,6 +21,10 @@ public record ApiResponse<T>(
         return new ApiResponse<>(true, message, data, null);
     }
 
+    public static <T> ApiResponse<T> failureWithData(String code, String message, T data) {
+        return new ApiResponse<>(false, null, data, ApiErrorDetail.of(code, message));
+    }
+
     public static ApiResponse<Void> failure(String code, String message) {
         return new ApiResponse<>(false, null, null, ApiErrorDetail.of(code, message));
     }

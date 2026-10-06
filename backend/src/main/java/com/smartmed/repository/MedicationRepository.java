@@ -10,5 +10,7 @@ public interface MedicationRepository extends JpaRepository<Medication, Long> {
     List<Medication> findAllByPatientIdOrderByCreatedAtDesc(Long patientId);
     Optional<Medication> findByIdAndPatientId(Long id, Long patientId);
 
+    List<Medication> findAllByIdInAndPatientId(List<Long> ids, Long patientId);
+
     boolean existsByIdAndPatientId(Long id, Long patientId);
 }

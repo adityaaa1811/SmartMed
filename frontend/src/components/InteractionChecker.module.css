@@ -1,0 +1,30 @@
+.card { padding: var(--space-lg); border: 1px solid rgba(55, 85, 52, 0.14); border-radius: var(--radius-lg); background: #fffefa; box-shadow: var(--shadow-soft); }
+.heading { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-md); }
+.heading h2 { margin: 0; font-size: 1.35rem; color: var(--color-primary); }
+.eyebrow { margin: 0 0 0.25rem; color: var(--color-accent); font-size: 0.75rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
+.count { flex: 0 0 auto; padding: 0.35rem 0.65rem; border-radius: 999px; color: var(--color-secondary); background: #eff5e9; font-size: 0.82rem; font-weight: 700; }
+.intro { margin: 0.7rem 0 1rem; color: var(--color-text-secondary); }
+.medicationChoices { display: grid; gap: 0.55rem; margin: 0 0 1rem; padding: 0; border: 0; }
+.medicationChoices legend { margin-bottom: 0.55rem; color: var(--color-primary); font-size: 0.9rem; font-weight: 700; }
+.choice { display: flex; align-items: center; gap: 0.75rem; padding: 0.8rem; border: 1px solid rgba(55, 85, 52, 0.15); border-radius: var(--radius-md); background: #fffefa; cursor: pointer; }
+.choice:has(input:checked) { border-color: var(--color-accent); background: #f3f7ee; }
+.choice input { width: 1.1rem; height: 1.1rem; accent-color: var(--color-secondary); }
+.choice span { display: grid; gap: 0.1rem; }
+.choice strong { color: var(--color-primary); }
+.choice small { color: var(--color-text-muted); }
+.button { min-height: 2.7rem; padding: 0.65rem 1rem; border: 0; border-radius: var(--radius-sm); color: var(--color-text-on-dark); background: var(--color-secondary); font: inherit; font-weight: 700; cursor: pointer; }
+.button:hover:not(:disabled), .button:focus-visible { background: var(--color-primary); }
+.button:disabled { opacity: 0.65; cursor: wait; }
+.empty, .state { margin: 0; padding: 1rem; border-radius: var(--radius-md); color: var(--color-text-secondary); background: #f3f7ee; }
+.error { margin: 0.75rem 0; color: #78372e; }
+.resultUnavailable, .resultNoData { margin-top: 1rem; padding: 1rem; border: 1px solid rgba(55, 85, 52, 0.18); border-radius: var(--radius-md); color: var(--color-primary); background: #f5f7f0; }
+.resultUnavailable p, .resultNoData p { margin: 0.45rem 0 0; color: var(--color-text-secondary); }
+.results { display: grid; gap: 0.7rem; margin-top: 1rem; }
+.resultHeading { margin: 0; color: var(--color-primary); font-weight: 700; }
+.interaction { padding: 1rem; border: 1px solid rgba(55, 85, 52, 0.17); border-radius: var(--radius-md); background: #fffefa; }
+.pair { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; color: var(--color-primary); }
+.pair span { color: var(--color-text-muted); font-size: 0.85rem; }
+.severity { margin: 0.55rem 0 0; color: var(--color-secondary); font-size: 0.88rem; font-weight: 700; }
+.description { margin: 0.35rem 0 0; color: var(--color-text-secondary); }
+.disclaimer { margin: 1rem 0 0; color: var(--color-text-muted); font-size: 0.83rem; }
+@media (max-width: 520px) { .card { padding: var(--space-md); } .heading { align-items: center; } }

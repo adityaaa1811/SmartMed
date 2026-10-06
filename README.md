@@ -16,7 +16,8 @@ Web application for medication management, scheduling, adherence analytics, and 
 | 4 — Scheduling & adherence | ✅ Complete |
 | 5 — Adherence analytics | ✅ Complete |
 | 6 — Consent-based caregiver & doctor monitoring | ✅ Complete |
-| 7+ | Future work |
+| 7 — Medication interaction checker | ✅ Complete |
+| 8+ | Future work |
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full plan. Authentication details: [docs/AUTH.md](docs/AUTH.md).
 
@@ -110,6 +111,14 @@ Patients create invitations by exact email lookup with POST /api/v1/relationship
 GET /api/v1/relationships returns only the authenticated patient's relationships or the authenticated caregiver/doctor's related requests. Caregivers can read connected patient summaries, saved doses for today, and analytics under /api/v1/caregiver/patients. Doctors can read connected patient summaries, patient overviews, saved doses, and analytics under /api/v1/doctor/patients. Analytics endpoints accept optional ISO dates in from and to.
 
 Monitoring routes require an active relationship of the matching role. Caregiver and doctor views are read-only; they do not create dose records or change dose status. Responses contain only monitoring fields and never include passwords, password hashes, or JWTs.
+
+## Phase 7: medication interaction checker
+
+`POST /api/v1/interactions/check` is available to authenticated PATIENT users only. The request contains `medicationIds`; the server derives the patient from the JWT, verifies every medication belongs to that patient, and sends only the selected medication names to the injected `DrugInteractionProvider`. Mixed or foreign IDs fail the whole request.
+
+The provider is on-demand and results are not stored. `SUCCESS` means provider interaction records were returned; `NO_DATA` means the provider returned no records, which does not establish that no interactions exist. Provider failures return HTTP 503 with `INTERACTION_PROVIDER_UNAVAILABLE` and `PROVIDER_UNAVAILABLE` response data. The UI states these outcomes separately and displays: “Interaction results are informational and do not replace advice from a doctor or pharmacist.”
+
+The existing provider abstraction remains the integration point. The configured `mock` provider returns an empty result and contains no real clinical interaction data. No external medical API or interaction database is configured.
 
 Success envelope:
 

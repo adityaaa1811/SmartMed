@@ -5,6 +5,7 @@ export class ApiError extends Error {
     message: string,
     public status: number,
     public code?: string,
+    public data?: unknown,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -19,11 +20,14 @@ type ApiPostOptions = {
 async function parseError(response: Response): Promise<ApiError> {
   let message = `Request failed (${response.status})`;
   let code: string | undefined;
+  let data: unknown;
   try {
     const body = (await response.json()) as {
       message?: string;
       error?: { code?: string; message?: string };
+      data?: unknown;
     };
+    data = body.data;
     if (body.error?.message) {
       message = body.error.message;
       code = body.error.code;
@@ -33,7 +37,7 @@ async function parseError(response: Response): Promise<ApiError> {
   } catch {
     /* ignore */
   }
-  return new ApiError(message, response.status, code);
+  return new ApiError(message, response.status, code, data);
 }
 
 function buildHeaders(auth: boolean): HeadersInit {
