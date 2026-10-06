@@ -27,6 +27,7 @@ import CareTeamPanel from '../components/CareTeamPanel';
 import CaregiverDashboard from '../components/CaregiverDashboard';
 import DoctorDashboard from '../components/DoctorDashboard';
 import InteractionChecker from '../components/InteractionChecker';
+import NotificationBell from '../components/NotificationBell';
 import styles from './HomePage.module.css';
 
 type AuthMode = 'login' | 'register';
@@ -299,7 +300,7 @@ export default function HomePage() {
           </div>
         </div>
         <p className={styles.subtitle}>{user?.role === 'CAREGIVER' ? 'Monitor adherence for patients who have connected with you.' : user?.role === 'DOCTOR' ? 'Review connected patients’ medications, schedules, and adherence.' : 'Medication details, schedules, and dose records in one private place.'}</p>
-        {user && <div className={styles.accountBar}><span>Signed in as {user.fullName}</span><button className={styles.textButton} onClick={signOut}>Sign out</button></div>}
+        {user && <div className={styles.accountBar}><span>Signed in as {user.fullName}</span><NotificationBell /><button className={styles.textButton} onClick={signOut}>Sign out</button></div>}
       </header>
 
       {user && <nav className={styles.roleNav} aria-label="Main navigation">

@@ -29,11 +29,17 @@ public class AdherenceService {
 
     private final MedicationScheduleRepository scheduleRepository;
     private final DoseRecordRepository doseRepository;
+    private final NotificationEventService notificationEventService;
+    private final AdherenceAttentionEvaluator adherenceAttentionEvaluator;
 
     public AdherenceService(MedicationScheduleRepository scheduleRepository,
-                            DoseRecordRepository doseRepository) {
+                            DoseRecordRepository doseRepository,
+                            NotificationEventService notificationEventService,
+                            AdherenceAttentionEvaluator adherenceAttentionEvaluator) {
         this.scheduleRepository = scheduleRepository;
         this.doseRepository = doseRepository;
+        this.notificationEventService = notificationEventService;
+        this.adherenceAttentionEvaluator = adherenceAttentionEvaluator;
     }
 
     @Transactional
@@ -114,7 +120,13 @@ public class AdherenceService {
         }
         dose.setStatus(targetStatus);
         dose.setTakenAt(targetStatus == DoseStatus.TAKEN ? java.time.Instant.now() : null);
-        return DoseResponse.from(doseRepository.save(dose));
+        DoseRecord savedDose = doseRepository.save(dose);
+        if (targetStatus == DoseStatus.MISSED) {
+            notificationEventService.missedDose(savedDose);
+        }
+        adherenceAttentionEvaluator.evaluateMonthToDate(
+                savedDose.getSchedule().getMedication().getPatient().getId());
+        return DoseResponse.from(savedDose);
     }
 
     private void materializeForDate(MedicationSchedule schedule, LocalDate date) {

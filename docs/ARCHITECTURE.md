@@ -16,7 +16,8 @@ SmartMed is a production-style web application for medication adherence, schedul
                                                └──────────────────────┘
 
 Phase 7: DrugInteractionProvider ──► configured provider (mock by default)
-Future:  NotificationService     ──► Email/SMS adapters (env-configured)
+Phase 8: NotificationService     ──► persistent in-app notifications
+Future:  external delivery adapters (not configured)
 ```
 
 ## Backend layers
@@ -92,6 +93,12 @@ DrugInteractionProvider (interface)
 
 `DrugInteractionResult` includes `fromMockProvider` so the UI can show disclaimers. Real providers must map vendor severity to `InteractionSeverity` without inventing interactions.
 
+## In-app notifications (Phase 8)
+
+`Notification` records are recipient-owned and deduplicated by recipient, type, and deterministic event key, enforced by a unique database constraint. Repository queries always scope to the authenticated recipient. Dose misses and care-relationship transitions create notifications in the same transaction as their state change. Active matching care relationships determine which connected caregivers/doctors receive missed-dose monitoring notices.
+
+Adherence attention reuses `AnalyticsService` for the current calendar month. It requires at least three recorded doses and an adherence percentage below the 70% product attention threshold; the threshold is not clinically validated. Notifications are generated from application events without a scheduler. Pending-dose and interaction notifications are deferred; the current mock interaction provider returns no data.
+
 ## Frontend structure
 
 ```text
@@ -127,4 +134,5 @@ Vite dev server proxies `/api` → `http://localhost:8080`. Production build ser
 | 5 | Adherence analytics |
 | 6 | Consent-based caregiver and doctor monitoring |
 | 7 | On-demand medication interaction checker |
-| 8+ | Future features (notifications, reports, and additional hardening) |
+| 8 | Recipient-scoped in-app notification and attention center |
+| 9+ | Future features (external delivery, reports, and additional hardening) |

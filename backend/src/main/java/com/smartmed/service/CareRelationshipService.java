@@ -29,11 +29,14 @@ public class CareRelationshipService {
 
     private final CareRelationshipRepository relationshipRepository;
     private final UserRepository userRepository;
+    private final NotificationEventService notificationEventService;
 
     public CareRelationshipService(CareRelationshipRepository relationshipRepository,
-                                   UserRepository userRepository) {
+                                   UserRepository userRepository,
+                                   NotificationEventService notificationEventService) {
         this.relationshipRepository = relationshipRepository;
         this.userRepository = userRepository;
+        this.notificationEventService = notificationEventService;
     }
 
     @Transactional
@@ -67,7 +70,9 @@ public class CareRelationshipService {
         relationship.setRelatedUser(relatedUser);
         relationship.setRelationshipType(request.relationshipType());
         relationship.setStatus(RelationshipStatus.PENDING);
-        return CareRelationshipResponse.from(relationshipRepository.save(relationship));
+        CareRelationship saved = relationshipRepository.save(relationship);
+        notificationEventService.relationshipRequested(saved);
+        return CareRelationshipResponse.from(saved);
     }
 
     @Transactional(readOnly = true)
@@ -83,7 +88,9 @@ public class CareRelationshipService {
     public CareRelationshipResponse accept(Long relationshipId, SmartMedUserDetails principal) {
         CareRelationship relationship = pendingForRelatedUser(relationshipId, principal);
         relationship.setStatus(RelationshipStatus.ACTIVE);
-        return CareRelationshipResponse.from(relationshipRepository.save(relationship));
+        CareRelationship saved = relationshipRepository.save(relationship);
+        notificationEventService.relationshipActivated(saved);
+        return CareRelationshipResponse.from(saved);
     }
 
     @Transactional
@@ -91,7 +98,9 @@ public class CareRelationshipService {
         CareRelationship relationship = pendingForRelatedUser(relationshipId, principal);
         // REJECTED is intentionally represented as REVOKED in the Phase 6 status model.
         relationship.setStatus(RelationshipStatus.REVOKED);
-        return CareRelationshipResponse.from(relationshipRepository.save(relationship));
+        CareRelationship saved = relationshipRepository.save(relationship);
+        notificationEventService.relationshipDeclined(saved);
+        return CareRelationshipResponse.from(saved);
     }
 
     @Transactional
@@ -103,7 +112,8 @@ public class CareRelationshipService {
             throw new InvalidCareRelationshipStateException("Only active relationships can be revoked by the patient");
         }
         relationship.setStatus(RelationshipStatus.REVOKED);
-        relationshipRepository.save(relationship);
+        CareRelationship saved = relationshipRepository.save(relationship);
+        notificationEventService.relationshipRevoked(saved);
     }
 
     private CareRelationship pendingForRelatedUser(Long relationshipId, SmartMedUserDetails principal) {

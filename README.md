@@ -17,7 +17,8 @@ Web application for medication management, scheduling, adherence analytics, and 
 | 5 — Adherence analytics | ✅ Complete |
 | 6 — Consent-based caregiver & doctor monitoring | ✅ Complete |
 | 7 — Medication interaction checker | ✅ Complete |
-| 8+ | Future work |
+| 8 — Attention center & in-app notifications | ✅ Complete |
+| 9+ | Future work |
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full plan. Authentication details: [docs/AUTH.md](docs/AUTH.md).
 
@@ -119,6 +120,14 @@ Monitoring routes require an active relationship of the matching role. Caregiver
 The provider is on-demand and results are not stored. `SUCCESS` means provider interaction records were returned; `NO_DATA` means the provider returned no records, which does not establish that no interactions exist. Provider failures return HTTP 503 with `INTERACTION_PROVIDER_UNAVAILABLE` and `PROVIDER_UNAVAILABLE` response data. The UI states these outcomes separately and displays: “Interaction results are informational and do not replace advice from a doctor or pharmacist.”
 
 The existing provider abstraction remains the integration point. The configured `mock` provider returns an empty result and contains no real clinical interaction data. No external medical API or interaction database is configured.
+
+## Phase 8: attention center and in-app notifications
+
+SmartMed stores recipient-owned in-app notifications for missed-dose events, care-relationship changes, and month-to-date adherence attention. `GET /api/v1/notifications` returns a page (default 20, maximum 50) and supports `unreadOnly=true`; `/unread-count`, `/{id}/read`, `/{id}/unread`, and `/read-all` are scoped to the authenticated recipient. Duplicate events are prevented by a recipient/type/event key backed by a database uniqueness constraint.
+
+Missed-dose notifications are created with the dose state transition. Monitoring notifications go only to caregivers/doctors with an ACTIVE matching relationship at that time. Adherence attention uses the existing analytics calculation for the current calendar month; it requires at least three recorded doses and a result below the 70% SmartMed product threshold. This threshold is an application attention rule, not a medically validated measure. Pending-dose notifications are deferred because SmartMed has no configured timing rule that establishes when a pending dose needs attention.
+
+Notifications are generated synchronously from existing application events; there is no background scheduler. Interaction notifications are deferred: the configured mock provider returns no interaction data, and provider unavailability is not persisted as a notification. Notifications are informational software events, not diagnoses, risk predictions, treatment recommendations, or emergency alerts. The notification table is managed by the existing Hibernate schema strategy; no migration tool or dependency was added.
 
 Success envelope:
 

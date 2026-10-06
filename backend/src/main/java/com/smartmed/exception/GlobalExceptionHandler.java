@@ -4,6 +4,7 @@ import com.smartmed.dto.error.ErrorResponse;
 import com.smartmed.exception.DuplicateCareRelationshipException;
 import com.smartmed.exception.InvalidCareRelationshipRequestException;
 import com.smartmed.exception.InvalidCareRelationshipStateException;
+import com.smartmed.exception.InvalidNotificationPageException;
 import com.smartmed.dto.response.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -24,6 +25,11 @@ import java.util.List;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(InvalidNotificationPageException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidNotificationPage(InvalidNotificationPageException ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.failure("INVALID_NOTIFICATION_PAGE", ex.getMessage()));
+    }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {

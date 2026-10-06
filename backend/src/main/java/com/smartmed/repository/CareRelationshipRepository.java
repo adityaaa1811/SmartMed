@@ -17,6 +17,9 @@ public interface CareRelationshipRepository extends JpaRepository<CareRelationsh
 
     List<CareRelationship> findAllByPatientIdOrderByCreatedAtDesc(Long patientId);
 
+    List<CareRelationship> findAllByPatientIdAndRelationshipTypeInAndStatus(
+            Long patientId, Collection<RelationshipType> relationshipTypes, RelationshipStatus status);
+
     List<CareRelationship> findAllByRelatedUserIdOrderByCreatedAtDesc(Long relatedUserId);
 
     List<CareRelationship> findAllByRelatedUserIdAndRelationshipTypeAndStatusOrderByCreatedAtDesc(
