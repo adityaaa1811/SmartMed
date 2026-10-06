@@ -1,97 +1,84 @@
-# Authentication (Phase 2)
+# Authentication and authorization
 
-## Overview
+SmartMed uses stateless JWT access tokens, BCrypt password hashes, and the `PATIENT`, `CAREGIVER`, and `DOCTOR` roles. Public registration creates PATIENT accounts only. A caller-supplied `role` field is ignored; elevated roles must be assigned through a trusted administrative process.
 
-SmartMed uses **stateless JWT authentication** with **BCrypt** password hashing and **role-based** authorities (`ROLE_PATIENT`, `ROLE_CAREGIVER`, `ROLE_DOCTOR`).
-
-## Required configuration
+## Configuration
 
 | Variable | Description |
 |----------|-------------|
-| `SMARTMED_JWT_SECRET` | **Required** at startup. Minimum 32 characters (256-bit HS256 key material). |
-| `SMARTMED_JWT_EXPIRATION_MS` | Access token lifetime in milliseconds (default `86400000`). |
+| `SMARTMED_JWT_SECRET` | Required at startup. Use a generated secret with at least 32 bytes of key material. Production requires the `base64:` prefix and validates decoded length and obvious weak patterns. |
+| `SMARTMED_JWT_EXPIRATION_MS` | Access-token lifetime in milliseconds (default `86400000`). |
 
-The backend fails fast on startup if `SMARTMED_JWT_SECRET` is missing or too short.
+Generate a fresh local secret in your shell; never paste the generated value into source control or documentation:
+
+```bash
+export SMARTMED_JWT_SECRET="base64:$(openssl rand -base64 32)"
+```
+
+Production secrets belong in the deployment provider's secret manager. The application does not log secret values.
 
 ## Flows
 
 ### Registration
 
-1. Client `POST /api/v1/auth/register` with `fullName`, `email`, `password`, `role`.
-2. Server normalizes email to lowercase, checks uniqueness, hashes password, saves `users` row.
-3. Server returns `201` with JWT and `UserResponse` (no password fields).
+1. Client sends `POST /api/v1/auth/register` with `fullName`, `email`, and `password`.
+2. The server normalizes email, checks uniqueness, hashes the password, and creates a PATIENT account.
+3. The server returns `201` with an access token and a user summary without password fields.
 
 ### Login
 
-1. Client `POST /api/v1/auth/login` with `email`, `password`.
-2. Server normalizes email, verifies BCrypt hash.
-3. On failure: `401` with `INVALID_CREDENTIALS` and generic message (no email enumeration).
-4. On success: `200` with JWT and user summary.
+1. Client sends `POST /api/v1/auth/login` with `email` and `password`.
+2. The server normalizes email and verifies the BCrypt hash.
+3. Failure returns `401 INVALID_CREDENTIALS` with a generic message. Success returns `200` with a JWT and user summary.
 
 ### Authenticated requests
 
 1. Client sends `Authorization: Bearer <accessToken>`.
-2. `JwtAuthenticationFilter` validates signature and expiry, loads user by email claim.
-3. Spring Security sets the authentication principal (`SmartMedUserDetails`).
+2. `JwtAuthenticationFilter` validates signature and expiration, loads the account using the email claim, and requires the signed `sub` to equal that account's stable database ID.
+3. Spring Security builds the principal and authorities from the currently loaded database account; the token's role claim is not used to grant access.
 
-### Current user
+`GET /api/v1/users/me` returns the authenticated database-backed principal, never a client-supplied user ID.
 
-`GET /api/v1/users/me` returns the authenticated user from the JWT principal (via database load), not from a client-supplied user id.
-
-## Public vs protected routes
+## Access rules
 
 | Method | Path | Access |
 |--------|------|--------|
 | GET | `/api/v1/health` | Public |
-| POST | `/api/v1/auth/register` | Public |
+| POST | `/api/v1/auth/register` | Public; creates PATIENT only |
 | POST | `/api/v1/auth/login` | Public |
 | GET | `/api/v1/users/me` | Authenticated |
-| * | Other `/api/**` | Authenticated (future phases) |
+| Other `/api/**` | Authenticated, with endpoint and service role/ownership checks |
 
-## Method security
+Caregiver and doctor access to patient data requires an active matching consent relationship. Patient-owned medication, schedule, dose, analytics, interaction, and notification operations verify ownership at the service/repository boundary.
 
-`@EnableMethodSecurity` is enabled. Future endpoints may use:
+## Local run and smoke test
 
-```java
-@PreAuthorize("hasRole('PATIENT')")
-```
-
-## Error format
-
-```json
-{
-  "success": false,
-  "error": {
-    "code": "INVALID_CREDENTIALS",
-    "message": "Invalid email or password"
-  }
-}
-```
-
-Validation errors include `fieldErrors` under `error`.
-
-## Local testing
+Start local MySQL using the instructions in the repository README, generate a fresh local secret as shown above, then run:
 
 ```bash
-export SMARTMED_JWT_SECRET='your-local-secret-at-least-32-characters-long'
-export SMARTMED_JPA_DDL=update
 cd backend && ./mvnw spring-boot:run
 ```
+
+Public registration sends no role field:
 
 ```bash
 curl -s -X POST http://localhost:8080/api/v1/auth/register \
   -H 'Content-Type: application/json' \
-  -d '{"fullName":"Aditya Mishra","email":"aditya.test@example.com","password":"SmartMed@123","role":"PATIENT"}'
+  -d '{"fullName":"Example Patient","email":"patient@example.test","password":"Use-a-unique-local-password-123!"}'
+```
 
+Login and use the returned bearer token:
+
+```bash
 curl -s -X POST http://localhost:8080/api/v1/auth/login \
   -H 'Content-Type: application/json' \
-  -d '{"email":"aditya.test@example.com","password":"SmartMed@123"}'
+  -d '{"email":"patient@example.test","password":"Use-a-unique-local-password-123!"}'
 
 curl -s http://localhost:8080/api/v1/users/me \
   -H "Authorization: Bearer <accessToken>"
 ```
 
-## Frontend (minimal)
+## Frontend token handling
 
-- `frontend/src/api/auth.ts` — register/login/current user API calls
-- `frontend/src/auth/tokenStorage.ts` — sessionStorage token helper (no secrets in Vite env)
+- `frontend/src/api/auth.ts` contains registration, login, and current-user calls.
+- `frontend/src/auth/tokenStorage.ts` stores the access token in `sessionStorage`; do not put JWT secrets in Vite variables.

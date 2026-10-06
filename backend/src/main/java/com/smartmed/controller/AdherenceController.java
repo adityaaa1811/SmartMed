@@ -53,7 +53,9 @@ public class AdherenceController {
     public ApiResponse<List<DoseResponse>> history(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int pageSize,
             @AuthenticationPrincipal SmartMedUserDetails principal) {
-        return ApiResponse.ok(adherenceService.history(from, to, principal));
+        return ApiResponse.ok(adherenceService.history(from, to, page, pageSize, principal));
     }
 }

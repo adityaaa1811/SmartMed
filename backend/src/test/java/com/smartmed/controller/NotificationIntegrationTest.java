@@ -442,6 +442,7 @@ class NotificationIntegrationTest {
         MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated()).andReturn();
+        promoteRole(email, role);
         JsonNode data = objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
         return new Account(data.path("accessToken").asText(), email);
     }
@@ -471,4 +472,12 @@ class NotificationIntegrationTest {
     private static String bearer(String token) { return "Bearer " + token; }
 
     private record Account(String token, String email) { }
+    private void promoteRole(String email, String role) {
+        if ("PATIENT".equals(role)) return;
+        userRepository.findByEmail(email).ifPresent(user -> {
+            user.setRole(com.smartmed.entity.Role.valueOf(role));
+            userRepository.save(user);
+        });
+    }
+
 }

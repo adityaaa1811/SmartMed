@@ -6,6 +6,7 @@ import {
 } from '../api/interactions';
 import type { Medication } from '../api/medications';
 import styles from './InteractionChecker.module.css';
+import { smartMedCalendarDate } from '../utils/calendarDates';
 
 type Props = {
   medications: Medication[];
@@ -13,8 +14,7 @@ type Props = {
 };
 
 function localDateString(): string {
-  const date = new Date();
-  return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
+  return smartMedCalendarDate();
 }
 
 export default function InteractionChecker({ medications, loading }: Props) {

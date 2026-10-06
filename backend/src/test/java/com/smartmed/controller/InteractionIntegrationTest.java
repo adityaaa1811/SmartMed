@@ -241,6 +241,7 @@ class InteractionIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())
                 .andReturn();
+        promoteRole(email, role);
         return objectMapper.readTree(result.getResponse().getContentAsString())
                 .path("data").path("accessToken").asText();
     }
@@ -268,4 +269,12 @@ class InteractionIntegrationTest {
     private static String bearer(String token) {
         return "Bearer " + token;
     }
+    private void promoteRole(String email, String role) {
+        if ("PATIENT".equals(role)) return;
+        userRepository.findByEmail(email).ifPresent(user -> {
+            user.setRole(com.smartmed.entity.Role.valueOf(role));
+            userRepository.save(user);
+        });
+    }
+
 }

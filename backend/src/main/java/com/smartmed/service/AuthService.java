@@ -39,7 +39,7 @@ public class AuthService {
         user.setFullName(request.fullName().trim());
         user.setEmail(email);
         user.setPassword(passwordEncoder.encode(request.password()));
-        user.setRole(request.role());
+        user.setRole(com.smartmed.entity.Role.PATIENT);
 
         User saved = userRepository.save(user);
         return buildAuthResponse(saved);

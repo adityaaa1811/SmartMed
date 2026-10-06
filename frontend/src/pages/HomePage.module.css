@@ -73,6 +73,7 @@
 .status[data-status='TAKEN'] { color: #24563b; background: #dcebdd; }
 .status[data-status='MISSED'] { color: #883e35; background: #f6ded8; }
 .status[data-status='SKIPPED'] { color: #4e5861; background: #e6e9eb; }
+.status[data-status='CANCELLED'] { color: #4e5861; background: #e6e9eb; }
 .historyItem { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); padding: 0.7rem var(--space-sm); border-bottom: 1px solid rgba(55, 85, 52, 0.12); }
 .historyItem div { display: flex; flex-direction: column; gap: var(--space-xs); }
 .historyItem div span { color: var(--color-text-muted); font-size: 0.84rem; }

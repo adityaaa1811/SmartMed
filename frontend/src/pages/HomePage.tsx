@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError } from '../api/client';
-import { fetchCurrentUser, login, register, type Role, type UserDto } from '../api/auth';
+import { fetchCurrentUser, login, register, type UserDto } from '../api/auth';
 import {
   createMedication,
   createSchedule,
@@ -34,14 +34,23 @@ type AuthMode = 'login' | 'register';
 type MedicationFields = Omit<MedicationPayload, 'endDate'> & { endDate: string };
 type ScheduleFields = Omit<SchedulePayload, 'endDate'> & { endDate: string };
 
+function localDateInputValue(): string {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: import.meta.env.VITE_SMARTMED_TIMEZONE ?? 'Asia/Kolkata',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(new Date());
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
 const blankMedication = (): MedicationFields => ({
   name: '', dosage: '', frequency: '', instructions: '',
-  startDate: new Date().toISOString().slice(0, 10), endDate: '',
+  startDate: localDateInputValue(), endDate: '',
 });
 
 const blankSchedule = (): ScheduleFields => ({
   frequency: 'ONCE_DAILY', timeOfDay: '08:00',
-  startDate: new Date().toISOString().slice(0, 10), endDate: '',
+  startDate: localDateInputValue(), endDate: '',
 });
 
 function messageFor(error: unknown): string {
@@ -65,7 +74,6 @@ export default function HomePage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [registrationRole, setRegistrationRole] = useState<Role>('PATIENT');
   const [medications, setMedications] = useState<Medication[]>([]);
   const [medicationFields, setMedicationFields] = useState<MedicationFields>(blankMedication);
   const [editingMedicationId, setEditingMedicationId] = useState<number | null>(null);
@@ -138,7 +146,7 @@ export default function HomePage() {
     setError(null);
     try {
       const result = authMode === 'register'
-        ? await register({ fullName, email, password, role: registrationRole })
+        ? await register({ fullName, email, password })
         : await login({ email, password });
       setUser(result.user);
       setPassword('');
@@ -181,7 +189,7 @@ export default function HomePage() {
   }
 
   async function removeMedication(id: number) {
-    if (!window.confirm('Delete this medication and its schedules?')) return;
+    if (!window.confirm('Deactivate this medication? Existing schedules will stop and recorded dose history will remain.')) return;
     setError(null);
     try {
       await deleteMedication(id);
@@ -264,7 +272,7 @@ export default function HomePage() {
     }
   }
 
-  async function setDoseStatus(doseId: number, status: Exclude<DoseStatus, 'PENDING'>) {
+  async function setDoseStatus(doseId: number, status: Exclude<DoseStatus, 'PENDING' | 'CANCELLED'>) {
     setUpdatingDoseId(doseId);
     setError(null);
     try {
@@ -324,13 +332,10 @@ export default function HomePage() {
               <button type="button" role="tab" aria-selected={authMode === 'register'} className={authMode === 'register' ? styles.activeTab : styles.tab} onClick={() => { setAuthMode('register'); setError(null); }}>Create account</button>
             </div>
             <h2 id="account-heading" className={styles.cardTitle}>{authMode === 'login' ? 'Welcome back' : 'Create your SmartMed account'}</h2>
-            <p className={styles.cardText}>Sign in to your patient, caregiver, or doctor account.</p>
+            <p className={styles.cardText}>Create a patient account, or sign in to an existing account.</p>
             <form className={styles.form} onSubmit={handleAuth}>
               {authMode === 'register' && <>
                 <label>Full name<input autoComplete="name" required minLength={2} maxLength={120} value={fullName} onChange={(event) => setFullName(event.target.value)} /></label>
-                <label>Account role<select value={registrationRole} onChange={(event) => setRegistrationRole(event.target.value as Role)}>
-                  <option value="PATIENT">Patient</option><option value="CAREGIVER">Caregiver</option><option value="DOCTOR">Doctor</option>
-                </select></label>
               </>}
               <label>Email<input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label>
               <label>Password<input type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required minLength={8} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} /></label>
@@ -376,7 +381,7 @@ export default function HomePage() {
                   <div className={styles.itemActions}>
                     <button className={styles.textButton} type="button" onClick={() => void toggleSchedules(medication.id)}>{openMedicationId === medication.id ? 'Hide schedules' : 'Schedules'}</button>
                     <button className={styles.textButton} type="button" onClick={() => beginEditMedication(medication)}>Edit</button>
-                    <button className={styles.dangerButton} type="button" onClick={() => void removeMedication(medication.id)}>Delete</button>
+                    <button className={styles.dangerButton} type="button" onClick={() => void removeMedication(medication.id)}>Deactivate</button>
                   </div>
                   {openMedicationId === medication.id && <div className={styles.schedulePanel}>
                     <h4>Medication schedules</h4>
@@ -386,7 +391,7 @@ export default function HomePage() {
                       <div><strong>{frequencyLabel(schedule.frequency)}</strong><span> · Anchor {timeLabel(schedule.timeOfDay)}</span><small>{schedule.startDate}{schedule.endDate ? ` – ${schedule.endDate}` : ' · Ongoing'}</small></div>
                       <div className={styles.itemActions}>
                         <button className={styles.textButton} type="button" onClick={() => beginEditSchedule(schedule)}>Edit</button>
-                        <button className={styles.dangerButton} type="button" onClick={() => void removeSchedule(schedule)}>Delete</button>
+                        <button className={styles.dangerButton} type="button" onClick={() => void removeSchedule(schedule)}>Deactivate</button>
                       </div>
                     </div>)}
                     <p className={styles.slotNote}>Additional times are deterministic software schedule slots derived from the anchor time. They are not dosing guidance.</p>
@@ -430,12 +435,15 @@ export default function HomePage() {
                 <div><p className={styles.eyebrow}>Recorded doses</p><h2 id="history-heading" className={styles.cardTitle}>Adherence history</h2></div>
                 <button className={styles.secondaryButton} type="button" onClick={() => void refreshAdherence()} disabled={loadingDoses}>{loadingDoses ? 'Loading…' : 'Refresh history'}</button>
               </div>
+              <p className={styles.mutedText}>Showing the 50 most recent records. Older records remain available through paged API requests.</p>
               {loadingDoses && <p className={styles.cardText} role="status">Loading dose history…</p>}
               {!loadingDoses && history.length === 0 && <p className={styles.emptyState}>Dose records will appear here as scheduled doses are viewed and recorded.</p>}
               {!loadingDoses && history.length > 0 && <div className={styles.historyList}>
                 {history.map((dose) => <div className={styles.historyItem} key={dose.id}>
                   <div><strong>{dose.medicationName}</strong><span>{dose.scheduledDate} · {timeLabel(dose.scheduledTime)}</span></div>
-                  <span className={styles.status} data-status={dose.status}>{dose.status}</span>
+                  <span className={styles.status} data-status={dose.status}>
+                    {dose.status === 'CANCELLED' ? 'CANCELLED · INACTIVE' : dose.status}
+                  </span>
                 </div>)}
               </div>}
             </section>
@@ -460,14 +468,16 @@ export default function HomePage() {
 
 function DoseCard({ dose, onStatus, busy }: {
   dose: DoseRecord;
-  onStatus: (id: number, status: Exclude<DoseStatus, 'PENDING'>) => void;
+  onStatus: (id: number, status: Exclude<DoseStatus, 'PENDING' | 'CANCELLED'>) => void;
   busy: boolean;
 }) {
   return (
     <article className={styles.doseItem}>
       <div className={styles.doseMain}>
         <div><h3>{dose.medicationName}</h3><p>{dose.dosage} · {dose.scheduledDate} at {timeLabel(dose.scheduledTime)}</p></div>
-        <span className={styles.status} data-status={dose.status}>{dose.status}</span>
+        <span className={styles.status} data-status={dose.status}>
+          {dose.status === 'CANCELLED' ? 'CANCELLED · INACTIVE' : dose.status}
+        </span>
       </div>
       {dose.status === 'PENDING' && <div className={styles.doseActions}>
         <button className={styles.button} type="button" disabled={busy} onClick={() => onStatus(dose.id, 'TAKEN')}>{busy ? 'Saving…' : 'Take'}</button>

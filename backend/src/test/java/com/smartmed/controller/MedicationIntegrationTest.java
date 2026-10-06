@@ -3,6 +3,8 @@ package com.smartmed.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartmed.repository.MedicationRepository;
+import com.smartmed.repository.MedicationScheduleRepository;
+import com.smartmed.repository.DoseRecordRepository;
 import com.smartmed.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,7 +17,10 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.UUID;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -31,10 +36,14 @@ class MedicationIntegrationTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private MedicationRepository medicationRepository;
+    @Autowired private MedicationScheduleRepository scheduleRepository;
+    @Autowired private DoseRecordRepository doseRepository;
     @Autowired private UserRepository userRepository;
 
     @BeforeEach
     void cleanDatabase() {
+        doseRepository.deleteAll();
+        scheduleRepository.deleteAll();
         medicationRepository.deleteAll();
         userRepository.deleteAll();
     }
@@ -73,6 +82,40 @@ class MedicationIntegrationTest {
         mockMvc.perform(delete("/api/v1/medications/{id}", id).header("Authorization", bearer(token)))
                 .andExpect(status().isNoContent());
         mockMvc.perform(get("/api/v1/medications/{id}", id).header("Authorization", bearer(token)))
+                .andExpect(status().isNotFound());
+    }
+
+
+    @Test
+    void deactivatingMedicationPreservesDoseHistoryAndPreventsNewSchedules() throws Exception {
+        String token = registerAndGetToken("PATIENT");
+        String start = LocalDate.now(ZoneId.of("Asia/Kolkata")).toString();
+        MvcResult created = mockMvc.perform(post("/api/v1/medications").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"History medication\",\"dosage\":\"1 tablet\",\"frequency\":\"daily\",\"startDate\":\"" + start + "\"}"))
+                .andExpect(status().isCreated()).andReturn();
+        long medicationId = objectMapper.readTree(created.getResponse().getContentAsString()).path("data").path("id").asLong();
+        mockMvc.perform(post("/api/v1/medications/{id}/schedules", medicationId)
+                        .header("Authorization", bearer(token)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"08:00\",\"startDate\":\"" + start + "\"}"))
+                .andExpect(status().isCreated());
+        MvcResult today = mockMvc.perform(get("/api/v1/adherence/today").header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andReturn();
+        long doseId = objectMapper.readTree(today.getResponse().getContentAsString()).path("data").get(0).path("id").asLong();
+
+        mockMvc.perform(delete("/api/v1/medications/{id}", medicationId).header("Authorization", bearer(token)))
+                .andExpect(status().isNoContent());
+        assertThat(medicationRepository.findById(medicationId).orElseThrow().getActive()).isFalse();
+        assertThat(scheduleRepository.findAllByMedicationIdAndMedicationPatientIdOrderByTimeOfDayAsc(
+                medicationId, medicationRepository.findById(medicationId).orElseThrow().getPatient().getId()).get(0).getActive()).isFalse();
+        assertThat(doseRepository.findById(doseId)).isPresent();
+        mockMvc.perform(get("/api/v1/medications").header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(0));
+        mockMvc.perform(get("/api/v1/adherence/history").header("Authorization", bearer(token)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.length()").value(1));
+        mockMvc.perform(post("/api/v1/medications/{id}/schedules", medicationId)
+                        .header("Authorization", bearer(token)).contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"09:00\",\"startDate\":\"" + start + "\"}"))
                 .andExpect(status().isNotFound());
     }
 
@@ -166,6 +209,7 @@ class MedicationIntegrationTest {
         MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON).content(request))
                 .andExpect(status().isCreated()).andReturn();
+        promoteRole(email, role);
         return objectMapper.readTree(result.getResponse().getContentAsString()).path("data").path("accessToken").asText();
     }
 
@@ -175,4 +219,12 @@ class MedicationIntegrationTest {
     }
 
     private static String bearer(String token) { return "Bearer " + token; }
+    private void promoteRole(String email, String role) {
+        if ("PATIENT".equals(role)) return;
+        userRepository.findByEmail(email).ifPresent(user -> {
+            user.setRole(com.smartmed.entity.Role.valueOf(role));
+            userRepository.save(user);
+        });
+    }
+
 }

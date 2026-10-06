@@ -3,6 +3,7 @@ package com.smartmed.service;
 import com.smartmed.dto.request.CreateScheduleRequest;
 import com.smartmed.dto.request.UpdateScheduleRequest;
 import com.smartmed.dto.response.ScheduleResponse;
+import com.smartmed.entity.DoseStatus;
 import com.smartmed.entity.MedicationSchedule;
 import com.smartmed.entity.Role;
 import com.smartmed.exception.ResourceNotFoundException;
@@ -13,6 +14,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.util.List;
 
 @Service
@@ -20,18 +22,23 @@ public class MedicationScheduleService {
 
     private final MedicationRepository medicationRepository;
     private final MedicationScheduleRepository scheduleRepository;
+    private final com.smartmed.repository.DoseRecordRepository doseRecordRepository;
+    private final Clock clock;
 
     public MedicationScheduleService(MedicationRepository medicationRepository,
-                                     MedicationScheduleRepository scheduleRepository) {
+                                     MedicationScheduleRepository scheduleRepository,
+                                     com.smartmed.repository.DoseRecordRepository doseRecordRepository, Clock clock) {
         this.medicationRepository = medicationRepository;
         this.scheduleRepository = scheduleRepository;
+        this.doseRecordRepository = doseRecordRepository;
+        this.clock = clock;
     }
 
     @Transactional
     public ScheduleResponse create(Long medicationId, CreateScheduleRequest request,
                                    SmartMedUserDetails principal) {
         requirePatient(principal);
-        var medication = medicationRepository.findByIdAndPatientId(medicationId, principal.getId())
+        var medication = medicationRepository.findByIdAndPatientIdAndActiveTrue(medicationId, principal.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Medication not found"));
         MedicationSchedule schedule = new MedicationSchedule();
         schedule.setMedication(medication);
@@ -42,7 +49,7 @@ public class MedicationScheduleService {
     @Transactional(readOnly = true)
     public List<ScheduleResponse> list(Long medicationId, SmartMedUserDetails principal) {
         requirePatient(principal);
-        if (!medicationRepository.existsByIdAndPatientId(medicationId, principal.getId())) {
+        if (!medicationRepository.existsByIdAndPatientIdAndActiveTrue(medicationId, principal.getId())) {
             throw new ResourceNotFoundException("Medication not found");
         }
         return scheduleRepository.findAllByMedicationIdAndMedicationPatientIdOrderByTimeOfDayAsc(
@@ -66,7 +73,9 @@ public class MedicationScheduleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found"));
         apply(schedule, request.frequency(), request.timeOfDay(), request.startDate(),
                 request.endDate(), request.active());
-        return ScheduleResponse.from(scheduleRepository.save(schedule));
+        MedicationSchedule saved = scheduleRepository.save(schedule);
+        if (!request.active()) cancelPendingDoses(scheduleId);
+        return ScheduleResponse.from(saved);
     }
 
     @Transactional
@@ -76,11 +85,18 @@ public class MedicationScheduleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found"));
         schedule.setActive(false);
         scheduleRepository.save(schedule);
+        cancelPendingDoses(scheduleId);
+    }
+
+    private void cancelPendingDoses(Long scheduleId) {
+        doseRecordRepository.cancelPendingForSchedule(scheduleId, DoseStatus.PENDING, DoseStatus.CANCELLED,
+                clock.instant());
     }
 
     private java.util.Optional<MedicationSchedule> ownedActiveSchedule(Long id, Long patientId) {
         return scheduleRepository.findByIdAndMedicationPatientId(id, patientId)
-                .filter(schedule -> Boolean.TRUE.equals(schedule.getActive()));
+                .filter(schedule -> Boolean.TRUE.equals(schedule.getActive()))
+                .filter(schedule -> Boolean.TRUE.equals(schedule.getMedication().getActive()));
     }
 
     private static void requirePatient(SmartMedUserDetails principal) {

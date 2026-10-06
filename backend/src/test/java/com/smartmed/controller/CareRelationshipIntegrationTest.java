@@ -65,7 +65,9 @@ class CareRelationshipIntegrationTest {
         mockMvc.perform(get("/api/v1/relationships").header("Authorization", bearer(patient.token())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(2))
-                .andExpect(jsonPath("$.data[0].status").value("PENDING"));
+                .andExpect(jsonPath("$.data[0].status").value("PENDING"))
+                .andExpect(jsonPath("$.data[0].patientName").value("Phase Six User"))
+                .andExpect(jsonPath("$.data[0].relatedUserName").value("Phase Six User"));
         mockMvc.perform(get("/api/v1/relationships").header("Authorization", bearer(caregiver.token())))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1))
@@ -205,6 +207,7 @@ class CareRelationshipIntegrationTest {
         MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated()).andReturn();
+        promoteRole(email, role);
         JsonNode data = objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
         return new Account(data.path("accessToken").asText(), email, data.path("user").path("id").asLong());
     }
@@ -216,4 +219,12 @@ class CareRelationshipIntegrationTest {
     private static String bearer(String token) { return "Bearer " + token; }
 
     private record Account(String token, String email, long id) { }
+    private void promoteRole(String email, String role) {
+        if ("PATIENT".equals(role)) return;
+        userRepository.findByEmail(email).ifPresent(user -> {
+            user.setRole(com.smartmed.entity.Role.valueOf(role));
+            userRepository.save(user);
+        });
+    }
+
 }

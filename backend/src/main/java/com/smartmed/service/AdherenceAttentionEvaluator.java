@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.Clock;
 import java.time.YearMonth;
 
 @Service
@@ -22,18 +23,20 @@ public class AdherenceAttentionEvaluator {
     private final AnalyticsService analyticsService;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final Clock clock;
 
     public AdherenceAttentionEvaluator(AnalyticsService analyticsService,
                                        UserRepository userRepository,
-                                       NotificationService notificationService) {
+                                       NotificationService notificationService, Clock clock) {
         this.analyticsService = analyticsService;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.clock = clock;
     }
 
     @Transactional
     public void evaluateMonthToDate(Long patientId) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         YearMonth reportingPeriod = YearMonth.from(today);
         AnalyticsSummaryResponse summary = analyticsService.summaryForPatient(
                 patientId, reportingPeriod.atDay(1), today);

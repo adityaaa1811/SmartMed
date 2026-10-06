@@ -19,8 +19,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.Clock;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -32,28 +34,31 @@ public class MonitoringService {
     private final AdherenceService adherenceService;
     private final MedicationRepository medicationRepository;
     private final MedicationScheduleRepository scheduleRepository;
+    private final Clock clock;
 
     public MonitoringService(CareRelationshipRepository relationshipRepository,
                              RelationshipAuthorizationService authorizationService,
                              AnalyticsService analyticsService,
                              AdherenceService adherenceService,
                              MedicationRepository medicationRepository,
-                             MedicationScheduleRepository scheduleRepository) {
+                             MedicationScheduleRepository scheduleRepository, Clock clock) {
         this.relationshipRepository = relationshipRepository;
         this.authorizationService = authorizationService;
         this.analyticsService = analyticsService;
         this.adherenceService = adherenceService;
         this.medicationRepository = medicationRepository;
         this.scheduleRepository = scheduleRepository;
+        this.clock = clock;
     }
 
     @Transactional(readOnly = true)
     public List<PatientMonitoringSummaryResponse> patients(SmartMedUserDetails viewer,
                                                             RelationshipType relationshipType) {
         List<User> patients = authorizationService.activePatients(viewer, relationshipType);
+        List<Long> patientIds = patients.stream().map(User::getId).toList();
+        Map<Long, AnalyticsSummaryResponse> summaries = analyticsService.summariesForPatients(patientIds);
         return patients.stream()
-                .map(patient -> PatientMonitoringSummaryResponse.from(
-                        patient, analyticsService.summaryForPatient(patient.getId(), null, null)))
+                .map(patient -> PatientMonitoringSummaryResponse.from(patient, summaries.get(patient.getId())))
                 .toList();
     }
 
@@ -82,9 +87,9 @@ public class MonitoringService {
     @Transactional(readOnly = true)
     public PatientOverviewResponse overview(SmartMedUserDetails viewer, Long patientId) {
         User patient = authorizationService.requireActivePatient(viewer, patientId, RelationshipType.DOCTOR);
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         List<Medication> currentMedications = medicationRepository
-                .findAllByPatientIdOrderByCreatedAtDesc(patient.getId()).stream()
+                .findAllByPatientIdAndActiveTrueOrderByCreatedAtDesc(patient.getId()).stream()
                 .filter(medication -> !medication.getStartDate().isAfter(today))
                 .filter(medication -> medication.getEndDate() == null || !medication.getEndDate().isBefore(today))
                 .toList();

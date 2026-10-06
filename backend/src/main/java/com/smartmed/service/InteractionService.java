@@ -41,7 +41,7 @@ public class InteractionService {
         requirePatient(principal);
         List<Long> medicationIds = request.medicationIds();
         List<Medication> ownedMedications = medicationRepository
-                .findAllByIdInAndPatientId(medicationIds, principal.getId());
+                .findAllByIdInAndPatientIdAndActiveTrue(medicationIds, principal.getId());
         if (ownedMedications.size() != medicationIds.size()) {
             throw new ResourceNotFoundException("Medication not found");
         }

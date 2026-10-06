@@ -14,8 +14,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.OnDelete;
-import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -33,7 +31,6 @@ public class MedicationSchedule {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "medication_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
     private Medication medication;
 
     @Enumerated(EnumType.STRING)

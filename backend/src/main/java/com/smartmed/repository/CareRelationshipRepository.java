@@ -4,6 +4,7 @@ import com.smartmed.entity.CareRelationship;
 import com.smartmed.entity.RelationshipStatus;
 import com.smartmed.entity.RelationshipType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 import java.util.Collection;
 import java.util.List;
@@ -15,13 +16,17 @@ public interface CareRelationshipRepository extends JpaRepository<CareRelationsh
             Long patientId, Long relatedUserId, RelationshipType relationshipType,
             Collection<RelationshipStatus> statuses);
 
+    @EntityGraph(attributePaths = {"patient", "relatedUser"})
     List<CareRelationship> findAllByPatientIdOrderByCreatedAtDesc(Long patientId);
 
+    @EntityGraph(attributePaths = {"patient", "relatedUser"})
     List<CareRelationship> findAllByPatientIdAndRelationshipTypeInAndStatus(
             Long patientId, Collection<RelationshipType> relationshipTypes, RelationshipStatus status);
 
+    @EntityGraph(attributePaths = {"patient", "relatedUser"})
     List<CareRelationship> findAllByRelatedUserIdOrderByCreatedAtDesc(Long relatedUserId);
 
+    @EntityGraph(attributePaths = {"patient", "relatedUser"})
     List<CareRelationship> findAllByRelatedUserIdAndRelationshipTypeAndStatusOrderByCreatedAtDesc(
             Long relatedUserId, RelationshipType relationshipType, RelationshipStatus status);
 

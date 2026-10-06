@@ -44,6 +44,9 @@ public class Medication {
 
     private LocalDate endDate;
 
+    @Column(nullable = false)
+    private Boolean active = true;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -77,6 +80,8 @@ public class Medication {
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
     public LocalDate getEndDate() { return endDate; }
     public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+    public Boolean getActive() { return active; }
+    public void setActive(Boolean active) { this.active = active; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }

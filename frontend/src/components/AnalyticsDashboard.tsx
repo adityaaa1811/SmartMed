@@ -21,6 +21,7 @@ import {
   type MedicationAnalytics,
 } from '../api/analytics';
 import styles from './AnalyticsDashboard.module.css';
+import { smartMedCalendarDate, smartMedDateDaysAgo } from '../utils/calendarDates';
 
 ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, ArcElement, Tooltip, Legend, Filler);
 
@@ -31,19 +32,6 @@ type DashboardData = {
   medications: MedicationAnalytics[];
 };
 
-function localDate(date = new Date()): string {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, '0');
-  const day = `${date.getDate()}`.padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function dateDaysAgo(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - days);
-  return localDate(date);
-}
-
 function describeError(error: unknown): string {
   if (error instanceof ApiError && error.status === 401) {
     return 'Your session has expired. Sign in again to view your analytics.';
@@ -53,11 +41,11 @@ function describeError(error: unknown): string {
 }
 
 export default function AnalyticsDashboard() {
-  const today = localDate();
+  const today = smartMedCalendarDate();
   const [rangeChoice, setRangeChoice] = useState<RangeChoice>('30');
-  const [customFrom, setCustomFrom] = useState(dateDaysAgo(29));
+  const [customFrom, setCustomFrom] = useState(smartMedDateDaysAgo(29));
   const [customTo, setCustomTo] = useState(today);
-  const [range, setRange] = useState({ from: dateDaysAgo(29), to: today });
+  const [range, setRange] = useState({ from: smartMedDateDaysAgo(29), to: today });
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,8 +97,8 @@ export default function AnalyticsDashboard() {
   }), [data]);
 
   function choosePreset(choice: '7' | '30') {
-    const from = dateDaysAgo(Number(choice) - 1);
-    const to = localDate();
+    const from = smartMedDateDaysAgo(Number(choice) - 1);
+    const to = smartMedCalendarDate();
     setRangeChoice(choice);
     setRangeError(null);
     setRange({ from, to });

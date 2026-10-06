@@ -25,6 +25,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -60,8 +61,39 @@ class AuthIntegrationTest {
                 .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
                 .andExpect(jsonPath("$.data.tokenType").value("Bearer"))
                 .andExpect(jsonPath("$.data.user.email").value(email.toLowerCase()))
+                .andExpect(jsonPath("$.data.user.role").value("PATIENT"))
                 .andExpect(jsonPath("$.data.password").doesNotExist())
                 .andExpect(jsonPath("$.data.user.password").doesNotExist());
+    }
+
+
+    @Test
+    void publicRegistrationCannotClaimCaregiverOrDoctorRoles() throws Exception {
+        for (String role : new String[] {"DOCTOR", "CAREGIVER"}) {
+            String email = uniqueEmail();
+            MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(registerJson("Untrusted Role", email, "SmartMed@123", role)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.data.user.role").value("PATIENT"))
+                    .andReturn();
+            assertThat(userRepository.findByEmail(email.toLowerCase()).orElseThrow().getRole().name())
+                    .isEqualTo("PATIENT");
+            assertThat(objectMapper.readTree(result.getResponse().getContentAsString())
+                    .path("data").path("user").path("role").asText()).isEqualTo("PATIENT");
+        }
+    }
+
+
+    @Test
+    void corsPreflightAllowsConfiguredDevelopmentOrigin() throws Exception {
+        mockMvc.perform(options("/api/v1/auth/login")
+                        .header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "POST")
+                        .header("Access-Control-Request-Headers", "content-type,authorization"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
     }
 
     @Test
@@ -148,7 +180,8 @@ class AuthIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginJson(email.toUpperCase(), "SmartMed@123")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.user.email").value(email.toLowerCase()));
+                .andExpect(jsonPath("$.data.user.email").value(email.toLowerCase()))
+                .andExpect(jsonPath("$.data.user.role").value("PATIENT"));
     }
 
     @Test
@@ -160,6 +193,47 @@ class AuthIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.email").exists())
                 .andExpect(jsonPath("$.data.password").doesNotExist());
+    }
+
+    @Test
+    void jwtSubjectMustMatchTheAccountLoadedFromEmailClaim() throws Exception {
+        String email = uniqueEmail();
+        registerUser("Bound Subject", email, "SmartMed@123", "PATIENT");
+        User account = userRepository.findByEmail(email.toLowerCase()).orElseThrow();
+        SecretKey key = Keys.hmacShaKeyFor(JWT_TEST_SECRET.getBytes(StandardCharsets.UTF_8));
+        String tokenWithAnotherAccountSubject = Jwts.builder()
+                .subject(String.valueOf(account.getId() + 1000))
+                .claim("email", account.getEmail())
+                .claim("role", account.getRole().name())
+                .issuedAt(Date.from(Instant.now()))
+                .expiration(Date.from(Instant.now().plusSeconds(3600)))
+                .signWith(key)
+                .compact();
+
+        mockMvc.perform(get("/api/v1/users/me")
+                        .header("Authorization", "Bearer " + tokenWithAnotherAccountSubject))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("INVALID_TOKEN"));
+    }
+
+    @Test
+    void jwtWithoutExpirationIsRejected() throws Exception {
+        String email = uniqueEmail();
+        registerUser("Missing Expiration", email, "SmartMed@123", "PATIENT");
+        User account = userRepository.findByEmail(email.toLowerCase()).orElseThrow();
+        SecretKey key = Keys.hmacShaKeyFor(JWT_TEST_SECRET.getBytes(StandardCharsets.UTF_8));
+        String tokenWithoutExpiration = Jwts.builder()
+                .subject(String.valueOf(account.getId()))
+                .claim("email", account.getEmail())
+                .claim("role", account.getRole().name())
+                .issuedAt(Date.from(Instant.now()))
+                .signWith(key)
+                .compact();
+
+        mockMvc.perform(get("/api/v1/users/me")
+                        .header("Authorization", "Bearer " + tokenWithoutExpiration))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code").value("INVALID_TOKEN"));
     }
 
     @Test
@@ -225,6 +299,7 @@ class AuthIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(registerJson(fullName, email, password, role)))
                 .andExpect(status().isCreated());
+        promoteRole(email, role);
     }
 
     private String registerAndGetToken(String fullName, String email, String password, String role) throws Exception {
@@ -233,6 +308,7 @@ class AuthIntegrationTest {
                         .content(registerJson(fullName, email, password, role)))
                 .andExpect(status().isCreated())
                 .andReturn();
+        promoteRole(email, role);
         JsonNode root = objectMapper.readTree(result.getResponse().getContentAsString());
         return root.path("data").path("accessToken").asText();
     }
@@ -260,4 +336,11 @@ class AuthIntegrationTest {
                 }
                 """.formatted(email, password);
     }
+    private void promoteRole(String email, String role) {
+        if ("PATIENT".equals(role)) return;
+        User user = userRepository.findByEmail(email.toLowerCase()).orElseThrow();
+        user.setRole(com.smartmed.entity.Role.valueOf(role));
+        userRepository.save(user);
+    }
+
 }

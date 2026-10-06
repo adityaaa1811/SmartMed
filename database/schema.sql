@@ -1,11 +1,7 @@
--- SmartMed MySQL schema
--- Phase 1: foundation only. Full DDL will be introduced via Flyway/Liquibase in Phase 2+.
--- Use `spring.jpa.hibernate.ddl-auto=update` during early development, then migrate to versioned scripts.
-
-CREATE DATABASE IF NOT EXISTS smartmed
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE smartmed;
-
--- Intentionally empty until authentication and domain entities land in Phase 2–4.
+-- Legacy pointer only. This file is not the production schema and must not be
+-- used to create or update databases. Flyway migrations are authoritative:
+-- backend/src/main/resources/db/migration/V1__initial_schema.sql
+-- backend/src/main/resources/db/migration/V2__add_medication_active_flag.sql
+-- backend/src/main/resources/db/migration/V3__cancel_pending_doses_for_inactive_schedules.sql
+-- backend/src/main/resources/db/migration/V4__restrict_medication_and_schedule_physical_deletes.sql
+-- Hibernate validates the migrated schema; production ddl-auto is validate.

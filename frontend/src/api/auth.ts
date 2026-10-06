@@ -23,7 +23,6 @@ export interface RegisterPayload {
   fullName: string;
   email: string;
   password: string;
-  role: Role;
 }
 
 export interface LoginPayload {

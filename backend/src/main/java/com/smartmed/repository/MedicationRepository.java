@@ -7,10 +7,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface MedicationRepository extends JpaRepository<Medication, Long> {
-    List<Medication> findAllByPatientIdOrderByCreatedAtDesc(Long patientId);
-    Optional<Medication> findByIdAndPatientId(Long id, Long patientId);
-
-    List<Medication> findAllByIdInAndPatientId(List<Long> ids, Long patientId);
-
-    boolean existsByIdAndPatientId(Long id, Long patientId);
+    List<Medication> findAllByPatientIdAndActiveTrueOrderByCreatedAtDesc(Long patientId);
+    Optional<Medication> findByIdAndPatientIdAndActiveTrue(Long id, Long patientId);
+    List<Medication> findAllByIdInAndPatientIdAndActiveTrue(List<Long> ids, Long patientId);
+    boolean existsByIdAndPatientIdAndActiveTrue(Long id, Long patientId);
 }

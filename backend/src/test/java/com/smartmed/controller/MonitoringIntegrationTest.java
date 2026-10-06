@@ -126,6 +126,11 @@ class MonitoringIntegrationTest {
         mockMvc.perform(get("/api/v1/caregiver/patients/{id}/analytics", patient.id())
                         .header("Authorization", bearer(otherCaregiver.token())))
                 .andExpect(status().isNotFound());
+        mockMvc.perform(get("/api/v1/caregiver/patients/{id}/analytics", patient.id())
+                        .param("from", "2020-01-01").param("to", "2022-01-01")
+                        .header("Authorization", bearer(caregiver.token())))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("INVALID_DATE_RANGE"));
     }
 
     @Test
@@ -286,6 +291,7 @@ class MonitoringIntegrationTest {
         MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated()).andReturn();
+        promoteRole(email, role);
         JsonNode data = objectMapper.readTree(result.getResponse().getContentAsString()).path("data");
         return new Account(data.path("accessToken").asText(), email, data.path("user").path("id").asLong());
     }
@@ -293,4 +299,12 @@ class MonitoringIntegrationTest {
     private static String bearer(String token) { return "Bearer " + token; }
 
     private record Account(String token, String email, long id) { }
+    private void promoteRole(String email, String role) {
+        if ("PATIENT".equals(role)) return;
+        userRepository.findByEmail(email).ifPresent(user -> {
+            user.setRole(com.smartmed.entity.Role.valueOf(role));
+            userRepository.save(user);
+        });
+    }
+
 }

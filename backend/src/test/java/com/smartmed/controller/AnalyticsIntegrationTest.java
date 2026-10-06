@@ -146,6 +146,25 @@ class AnalyticsIntegrationTest {
     }
 
     @Test
+    void allAnalyticsEndpointsRejectRangesOver366DaysAndAcceptTheLimit() throws Exception {
+        String token = registerAndGetToken("PATIENT");
+        String today = LocalDate.now(java.time.ZoneId.of("Asia/Kolkata")).toString();
+        String maxRangeStart = LocalDate.parse(today).minusDays(365).toString();
+        String tooLongStart = LocalDate.parse(today).minusDays(366).toString();
+
+        mockMvc.perform(get(BASE + "/summary").param("from", maxRangeStart).param("to", today)
+                        .header("Authorization", bearer(token)))
+                .andExpect(status().isOk());
+
+        for (String path : new String[] {"/summary", "/daily", "/medications"}) {
+            mockMvc.perform(get(BASE + path).param("from", tooLongStart).param("to", today)
+                            .header("Authorization", bearer(token)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error.code").value("INVALID_DATE_RANGE"));
+        }
+    }
+
+    @Test
     void patientOnlySeesAnalyticsForTheirOwnDoseRecords() throws Exception {
         String owner = registerAndGetToken("PATIENT");
         String otherPatient = registerAndGetToken("PATIENT");
@@ -227,9 +246,18 @@ class AnalyticsIntegrationTest {
         MvcResult result = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated()).andReturn();
+        promoteRole(email, role);
         return objectMapper.readTree(result.getResponse().getContentAsString())
                 .path("data").path("accessToken").asText();
     }
 
     private static String bearer(String token) { return "Bearer " + token; }
+    private void promoteRole(String email, String role) {
+        if ("PATIENT".equals(role)) return;
+        userRepository.findByEmail(email).ifPresent(user -> {
+            user.setRole(com.smartmed.entity.Role.valueOf(role));
+            userRepository.save(user);
+        });
+    }
+
 }

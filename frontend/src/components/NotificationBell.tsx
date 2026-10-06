@@ -57,7 +57,17 @@ export default function NotificationBell() {
   }
 
   useEffect(() => {
-    void refreshUnreadCount();
+    const refresh = () => { void refreshUnreadCount(); };
+    const onVisibility = () => { if (document.visibilityState === 'visible') refresh(); };
+    refresh();
+    window.addEventListener('smartmed:notifications-changed', refresh);
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('smartmed:notifications-changed', refresh);
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
 
   async function togglePanel() {

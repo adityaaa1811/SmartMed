@@ -10,6 +10,7 @@ import com.smartmed.repository.DoseRecordRepository;
 import com.smartmed.repository.projection.DailyDoseCountProjection;
 import com.smartmed.repository.projection.DoseStatusCountProjection;
 import com.smartmed.repository.projection.MedicationDoseCountProjection;
+import com.smartmed.repository.projection.PatientDoseStatusCountProjection;
 import com.smartmed.security.SmartMedUserDetails;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.Clock;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,16 +30,37 @@ import java.util.Map;
 public class AnalyticsService {
 
     private static final int DEFAULT_RANGE_DAYS = 30;
+    private static final int MAX_RANGE_DAYS = 366;
     private final DoseRecordRepository doseRecordRepository;
+    private final Clock clock;
 
-    public AnalyticsService(DoseRecordRepository doseRecordRepository) {
+    public AnalyticsService(DoseRecordRepository doseRecordRepository, Clock clock) {
         this.doseRecordRepository = doseRecordRepository;
+        this.clock = clock;
     }
 
     @Transactional(readOnly = true)
     public AnalyticsSummaryResponse summary(LocalDate from, LocalDate to, SmartMedUserDetails principal) {
         requirePatient(principal);
         return summaryForPatient(principal.getId(), from, to);
+    }
+
+    @Transactional(readOnly = true)
+    public Map<Long, AnalyticsSummaryResponse> summariesForPatients(List<Long> patientIds) {
+        if (patientIds.isEmpty()) return Map.of();
+        DateRange range = resolveRange(null, null);
+        Map<Long, Counts> countsByPatient = new LinkedHashMap<>();
+        patientIds.forEach(id -> countsByPatient.put(id, new Counts()));
+        List<PatientDoseStatusCountProjection> rows = doseRecordRepository.aggregateStatusesForPatients(
+                patientIds, range.from(), range.to(), DoseStatus.CANCELLED);
+        for (PatientDoseStatusCountProjection row : rows) {
+            countsByPatient.get(row.getPatientId()).add(row.getStatus(), row.getDoseCount());
+        }
+        Map<Long, AnalyticsSummaryResponse> summaries = new LinkedHashMap<>();
+        countsByPatient.forEach((patientId, counts) -> summaries.put(patientId,
+                new AnalyticsSummaryResponse(range.from(), range.to(), counts.total(), counts.taken,
+                        counts.missed, counts.skipped, counts.pending, counts.percentage())));
+        return summaries;
     }
 
     @Transactional(readOnly = true)
@@ -48,7 +72,8 @@ public class AnalyticsService {
     // Internal target-patient methods are called by MonitoringService only after relationship authorization.
     AnalyticsSummaryResponse summaryForPatient(Long patientId, LocalDate from, LocalDate to) {
         DateRange range = resolveRange(from, to);
-        Counts counts = counts(doseRecordRepository.aggregateStatuses(patientId, range.from(), range.to()));
+        Counts counts = counts(doseRecordRepository.aggregateStatuses(
+                patientId, range.from(), range.to(), DoseStatus.CANCELLED));
         return new AnalyticsSummaryResponse(range.from(), range.to(), counts.total(), counts.taken,
                 counts.missed, counts.skipped, counts.pending, counts.percentage());
     }
@@ -57,7 +82,7 @@ public class AnalyticsService {
         DateRange range = resolveRange(from, to);
         Map<LocalDate, Counts> countsByDay = new LinkedHashMap<>();
         List<DailyDoseCountProjection> rows = doseRecordRepository
-                .aggregateDailyStatuses(patientId, range.from(), range.to());
+                .aggregateDailyStatuses(patientId, range.from(), range.to(), DoseStatus.CANCELLED);
         for (DailyDoseCountProjection row : rows) {
             countsByDay.computeIfAbsent(row.getScheduledDate(), ignored -> new Counts())
                     .add(row.getStatus(), row.getDoseCount());
@@ -79,7 +104,7 @@ public class AnalyticsService {
         DateRange range = resolveRange(from, to);
         Map<Long, MedicationCounts> countsByMedication = new LinkedHashMap<>();
         List<MedicationDoseCountProjection> rows = doseRecordRepository
-                .aggregateMedicationStatuses(patientId, range.from(), range.to());
+                .aggregateMedicationStatuses(patientId, range.from(), range.to(), DoseStatus.CANCELLED);
         for (MedicationDoseCountProjection row : rows) {
             MedicationCounts counts = countsByMedication.computeIfAbsent(row.getMedicationId(),
                     ignored -> new MedicationCounts(row.getMedicationName()));
@@ -91,8 +116,8 @@ public class AnalyticsService {
         return result;
     }
 
-    private static DateRange resolveRange(LocalDate from, LocalDate to) {
-        LocalDate today = LocalDate.now();
+    private DateRange resolveRange(LocalDate from, LocalDate to) {
+        LocalDate today = LocalDate.now(clock);
         LocalDate effectiveFrom = from;
         LocalDate effectiveTo = to;
         if (effectiveFrom == null && effectiveTo == null) {
@@ -105,6 +130,9 @@ public class AnalyticsService {
         }
         if (effectiveFrom.isAfter(effectiveTo)) {
             throw new InvalidDateRangeException("from date cannot be after to date");
+        }
+        if (ChronoUnit.DAYS.between(effectiveFrom, effectiveTo) > MAX_RANGE_DAYS - 1L) {
+            throw new InvalidDateRangeException("Analytics date range cannot exceed " + MAX_RANGE_DAYS + " days");
         }
         return new DateRange(effectiveFrom, effectiveTo);
     }
@@ -136,6 +164,7 @@ public class AnalyticsService {
                 case MISSED -> missed += value;
                 case SKIPPED -> skipped += value;
                 case PENDING -> pending += value;
+                case CANCELLED -> { }
             }
         }
 

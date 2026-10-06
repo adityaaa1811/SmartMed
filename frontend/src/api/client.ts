@@ -1,5 +1,8 @@
 import { getAccessToken } from '../auth/tokenStorage';
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '');
+const apiUrl = (path: string) => `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -54,7 +57,7 @@ function buildHeaders(auth: boolean): HeadersInit {
 }
 
 export async function apiGet<T>(path: string, auth = false): Promise<T> {
-  const response = await fetch(path, {
+  const response = await fetch(apiUrl(path), {
     method: 'GET',
     headers: buildHeaders(auth),
     credentials: 'include',
@@ -81,7 +84,7 @@ export async function apiPost<T>(
     headers['Content-Type'] = 'application/json';
   }
 
-  const response = await fetch(path, {
+  const response = await fetch(apiUrl(path), {
     method,
     headers,
     body: body !== undefined && method !== 'GET' ? JSON.stringify(body) : undefined,

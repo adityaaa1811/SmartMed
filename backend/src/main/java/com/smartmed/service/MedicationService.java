@@ -4,6 +4,7 @@ import com.smartmed.dto.request.CreateMedicationRequest;
 import com.smartmed.dto.request.UpdateMedicationRequest;
 import com.smartmed.dto.response.MedicationResponse;
 import com.smartmed.entity.Medication;
+import com.smartmed.entity.DoseStatus;
 import com.smartmed.entity.Role;
 import com.smartmed.exception.ResourceNotFoundException;
 import com.smartmed.repository.MedicationRepository;
@@ -13,6 +14,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.util.List;
 
 @Service
@@ -20,10 +22,18 @@ public class MedicationService {
 
     private final MedicationRepository medicationRepository;
     private final UserRepository userRepository;
+    private final com.smartmed.repository.MedicationScheduleRepository scheduleRepository;
+    private final com.smartmed.repository.DoseRecordRepository doseRecordRepository;
+    private final Clock clock;
 
-    public MedicationService(MedicationRepository medicationRepository, UserRepository userRepository) {
+    public MedicationService(MedicationRepository medicationRepository, UserRepository userRepository,
+                             com.smartmed.repository.MedicationScheduleRepository scheduleRepository,
+                             com.smartmed.repository.DoseRecordRepository doseRecordRepository, Clock clock) {
         this.medicationRepository = medicationRepository;
         this.userRepository = userRepository;
+        this.scheduleRepository = scheduleRepository;
+        this.doseRecordRepository = doseRecordRepository;
+        this.clock = clock;
     }
 
     @Transactional
@@ -41,7 +51,7 @@ public class MedicationService {
     @Transactional(readOnly = true)
     public List<MedicationResponse> list(SmartMedUserDetails principal) {
         requirePatient(principal);
-        return medicationRepository.findAllByPatientIdOrderByCreatedAtDesc(principal.getId())
+        return medicationRepository.findAllByPatientIdAndActiveTrueOrderByCreatedAtDesc(principal.getId())
                 .stream().map(MedicationResponse::from).toList();
     }
 
@@ -67,11 +77,15 @@ public class MedicationService {
         requirePatient(principal);
         Medication medication = ownedMedication(id, principal.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Medication not found"));
-        medicationRepository.delete(medication);
+        medication.setActive(false);
+        medicationRepository.save(medication);
+        scheduleRepository.deactivateAllForMedication(medication.getId(), principal.getId(), clock.instant());
+        doseRecordRepository.cancelPendingForMedication(medication.getId(), DoseStatus.PENDING,
+                DoseStatus.CANCELLED, clock.instant());
     }
 
     private java.util.Optional<Medication> ownedMedication(Long id, Long patientId) {
-        return medicationRepository.findByIdAndPatientId(id, patientId);
+        return medicationRepository.findByIdAndPatientIdAndActiveTrue(id, patientId);
     }
 
     private static void requirePatient(SmartMedUserDetails principal) {

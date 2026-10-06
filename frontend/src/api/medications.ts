@@ -1,5 +1,6 @@
 import { apiGet, apiPost } from './client';
 import type { ApiEnvelope } from './health';
+import { notifyNotificationsChanged } from './notifications';
 
 export interface Medication {
   id: number;
@@ -23,7 +24,7 @@ export interface MedicationPayload {
 }
 
 export type ScheduleFrequency = 'ONCE_DAILY' | 'TWICE_DAILY' | 'THREE_TIMES_DAILY' | 'FOUR_TIMES_DAILY';
-export type DoseStatus = 'PENDING' | 'TAKEN' | 'MISSED' | 'SKIPPED';
+export type DoseStatus = 'PENDING' | 'TAKEN' | 'MISSED' | 'SKIPPED' | 'CANCELLED';
 
 export interface MedicationSchedule {
   id: number;
@@ -100,14 +101,18 @@ export async function getTodaysDoses(): Promise<DoseRecord[]> {
   return (await apiGet<ApiEnvelope<DoseRecord[]>>('/api/v1/adherence/today', true)).data;
 }
 
-export async function getAdherenceHistory(from?: string, to?: string): Promise<DoseRecord[]> {
+export async function getAdherenceHistory(from?: string, to?: string, page = 0, pageSize = 50): Promise<DoseRecord[]> {
   const query = new URLSearchParams();
   if (from) query.set('from', from);
   if (to) query.set('to', to);
+  query.set('page', String(page));
+  query.set('pageSize', String(pageSize));
   const suffix = query.size > 0 ? `?${query.toString()}` : '';
   return (await apiGet<ApiEnvelope<DoseRecord[]>>(`/api/v1/adherence/history${suffix}`, true)).data;
 }
 
-export async function updateDoseStatus(id: number, status: Exclude<DoseStatus, 'PENDING'>): Promise<DoseRecord> {
-  return (await apiPost<ApiEnvelope<DoseRecord>>(`/api/v1/adherence/${id}/${status.toLowerCase()}`, {}, { auth: true })).data;
+export async function updateDoseStatus(id: number, status: Exclude<DoseStatus, 'PENDING' | 'CANCELLED'>): Promise<DoseRecord> {
+  const result = (await apiPost<ApiEnvelope<DoseRecord>>(`/api/v1/adherence/${id}/${status.toLowerCase()}`, {}, { auth: true })).data;
+  if (status === 'MISSED') notifyNotificationsChanged();
+  return result;
 }

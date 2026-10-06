@@ -30,6 +30,7 @@
 .status[data-status='PENDING'] { color: #70540f; background: #f8edc6; }
 .status[data-status='TAKEN'] { color: #24563b; background: #dcebdd; }
 .status[data-status='MISSED'] { color: #883e35; background: #f6ded8; }
+.status[data-status='CANCELLED'] { color: #4e5861; background: #e6e9eb; }
 .analytics { display: flex; flex-direction: column; gap: 0.7rem; }
 .miniMetrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.5rem; }
 .metric { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.7rem; border-radius: var(--radius-md); background: #f4f7ee; }

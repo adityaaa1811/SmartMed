@@ -1,138 +1,70 @@
-# SmartMed Architecture
+# SmartMed architecture
 
-SmartMed is a production-style web application for medication adherence, scheduling, analytics, and **informational** drug interaction checking. It is not a medical device and does not replace clinicians.
+SmartMed is a medication management and adherence monitoring application. It is an educational software project, not a medical device, and does not diagnose, prescribe, or replace a clinician or pharmacist.
 
-## High-level topology
+## Runtime topology
 
 ```text
-┌─────────────────┐     REST (JSON)      ┌──────────────────────────────┐
-│  React + Vite   │ ◄──────────────────► │  Spring Boot 3 (Java 17)     │
-│  (frontend/)    │     JWT (Phase 2+)   │  Layered architecture        │
-└─────────────────┘                      └──────────────┬───────────────┘
-                                                          │
-                                                          ▼
-                                               ┌──────────────────────┐
-                                               │  MySQL 8             │
-                                               └──────────────────────┘
-
-Phase 7: DrugInteractionProvider ──► configured provider (mock by default)
-Phase 8: NotificationService     ──► persistent in-app notifications
-Future:  external delivery adapters (not configured)
+React + Vite + TypeScript (Vercel)
+              │ HTTPS JSON API / JWT
+              ▼
+Spring Boot 3 / Java 17 (Railway)
+              │ JDBC / Flyway
+              ▼
+MySQL 8 (Railway)
 ```
+
+For local development, the React dev server proxies `/api` to Spring Boot and Docker Compose runs MySQL bound to loopback. Production deployment is intended for Vercel, Railway backend, and Railway MySQL; see the README for environment and TLS requirements. Repository documentation does not claim that a Railway deployment has been tested.
 
 ## Backend layers
 
-| Layer | Responsibility |
-|--------|----------------|
-| `controller` | HTTP mapping, status codes, DTO in/out only |
-| `service` | Business rules, transactions, authorization checks |
-| `repository` | JPA data access |
-| `model` | JPA entities (not exposed on the wire) |
-| `dto` | API request/response shapes |
-| `config` | Security, CORS, properties |
-| `exception` | Centralized error mapping |
+| Package | Responsibility |
+|---------|----------------|
+| `controller` | HTTP mapping and request/response DTOs |
+| `service` | Business rules, transactions, ownership, role, and relationship authorization |
+| `repository` | Spring Data JPA access, projections, locking, and bounded queries |
+| `entity` | JPA persistence model |
+| `dto` | Validated request and response contracts |
+| `security` | JWT authentication and bounded login/registration throttling |
+| `config` | Spring Security, CORS, properties, and application clock |
+| `exception` | Centralized API error mapping |
 
-**Rules:** No business logic in controllers. No SQL in controllers. Never trust IDs from the client without verifying ownership/role.
+Sensitive operations derive the principal from a validated JWT and constrain repository reads and writes by owner or an active matching care relationship. Controllers do not accept a caller-selected patient ID for patient-owned routes.
 
-## API conventions
+## Current data model and persistence
 
-- Base path: `/api/v1`
-- Success envelope: `{ "success": true, "message": null, "data": { ... } }`
-- Errors: `ErrorResponse` with HTTP status, message, path, optional field errors
-- Public endpoints: `/api/v1/health`, `/api/v1/public/**` (auth routes in Phase 2)
+Flyway migrations under `backend/src/main/resources/db/migration` are authoritative. The current schema is created in order by V1 (initial tables, keys, and indexes), V2 (medication active flag), V3 (cancelled-dose state and constraint), and V4 (restrict physical medication/schedule deletes so dose history cannot cascade away). Hibernate validates the migrated schema and does not create or update production tables. `database/schema.sql` is a legacy pointer, not a deployable schema.
 
-## Authentication (Phase 2 plan)
+Core entities are `User`, `Medication`, `MedicationSchedule`, `DoseRecord`, `CareRelationship`, and `Notification`. Medication deactivation is soft: medication and schedules become inactive, historical doses remain, and pending doses are marked `CANCELLED`. Completed dose states are not rewritten. Cancelled doses are excluded from adherence analytics.
 
-- **Stateless JWT** (access token) issued after login; refresh strategy TBD (refresh token table or short-lived access only for MVP).
-- **BCrypt** password hashing (`PasswordEncoder` bean already registered).
-- **Role enum:** `PATIENT`, `CAREGIVER`, `DOCTOR` on core `User` entity.
-- **Spring Security** filter chain: JWT authentication filter before `UsernamePasswordAuthenticationFilter`.
-- **Method-level security** (`@PreAuthorize`) on sensitive service entry points.
-- Profile tables: `PatientProfile`, `CaregiverProfile`, `DoctorProfile` linked 1:1 to `User`.
+Dose generation runs under a per-patient transaction lock, loads the day's existing dose rows in one query, and uses a database uniqueness constraint on `(schedule_id, scheduled_date, scheduled_time)` as a final idempotency guard. Dose transitions are conditional updates from `PENDING`, protecting terminal states during concurrent requests.
 
-## Database design (planned)
+## Identity and consent
 
-Normalized relational model in MySQL 8 (utf8mb4).
+Public registration always creates PATIENT accounts. CAREGIVER and DOCTOR accounts are provisioned outside public registration. JWT `sub` contains the stable user ID; the email claim is used to load the current account, then checked against that subject. Authorities are read from the database account.
 
-### Core identity
+Patients grant or revoke caregiver/doctor access through `CareRelationship`. Monitoring reads require an active relationship with the expected role and remain read-only. Relationship-list queries fetch both users with entity graphs.
 
-- **users** — email (unique), password_hash, role, enabled, timestamps
-- **patient_profiles** — user_id FK, display fields
-- **caregiver_profiles** — user_id FK
-- **doctor_profiles** — user_id FK, clinic metadata
+## Dates and timezone
 
-### Medication domain
+Backend calendar calculations use the injected `Clock`, configured by `SMARTMED_TIMEZONE` (default `Asia/Kolkata`). The frontend uses the matching `VITE_SMARTMED_TIMEZONE` for date presets. Date-only values stay as calendar dates and are not converted through UTC instants.
 
-- **medications** — patient_id FK, name, generic_name, dosage, unit, frequency, instructions, active flag, date range
-- **medication_schedule_times** — medication_id FK, time_of_day (supports multiple times per day)
-- **scheduled_doses** — materialized dose instances (date, scheduled_at, status: UPCOMING/TAKEN/MISSED/SKIPPED)
-- **dose_events** / **adherence_logs** — immutable adherence events for analytics (backend is source of truth)
+## API and user-facing behavior
 
-### Relationships & access
+- API base path: `/api/v1`.
+- Success envelope: `{ "success": true, "message": null, "data": ... }`.
+- Errors use the shared API error envelope and HTTP status.
+- Adherence history is date-filtered and paginated (default 50 rows, maximum 100 per page).
+- Analytics ranges are capped at 366 calendar days.
+- In-app notifications are recipient-scoped and paginated.
+- Interaction checks use the configured `DrugInteractionProvider`; the default mock provider returns no clinical interaction data.
 
-- **caregiver_connections** — patient_id, caregiver_id, status (PENDING/ACTIVE/REVOKED), consent timestamps
-- **doctor_patient_connections** — patient_id, doctor_id, status, permissions bitmask or JSON for scoped access
+## CORS, health, and deployment configuration
 
-### Safety & ops
+CORS uses the explicit `SMARTMED_CORS_ORIGINS` allowlist and is enabled in Spring Security. Production database connection fields and `SMARTMED_DB_SSL_MODE` are explicit environment configuration; no production SSL mode is silently selected. Use Railway private networking only when both services share the same project environment, or use certificate-verified TLS for an external database. Deployment setup is documented in README.md.
 
-- **interaction_checks** — audit of checks run (provider id, request hash, result snapshot, mock flag)
-- **notifications** — type, payload, read state, recipient user_id
-- **audit_logs** — sensitive actions (optional Phase 11)
+`/api/v1/health` is a simple process response. Actuator liveness is independent of database availability; readiness includes the database health indicator. Actuator health details are hidden.
 
-Indexes: FK columns, `(patient_id, scheduled_at)` on doses, `(recipient_id, created_at)` on notifications.
+## Phases
 
-Migrations: introduce **Flyway** in Phase 2 with versioned scripts under `backend/src/main/resources/db/migration`.
-
-## Drug interaction provider abstraction (Phase 7)
-
-```text
-DrugInteractionProvider (interface)
-    ├── MockDrugInteractionProvider   (@ConditionalOnProperty provider=mock) — no fabricated clinical data
-    └── ExternalDrugInteractionProvider (future) — calls real API using SMARTMED_INTERACTION_API_KEY
-```
-
-`DrugInteractionResult` includes `fromMockProvider` so the UI can show disclaimers. Real providers must map vendor severity to `InteractionSeverity` without inventing interactions.
-
-## In-app notifications (Phase 8)
-
-`Notification` records are recipient-owned and deduplicated by recipient, type, and deterministic event key, enforced by a unique database constraint. Repository queries always scope to the authenticated recipient. Dose misses and care-relationship transitions create notifications in the same transaction as their state change. Active matching care relationships determine which connected caregivers/doctors receive missed-dose monitoring notices.
-
-Adherence attention reuses `AnalyticsService` for the current calendar month. It requires at least three recorded doses and an adherence percentage below the 70% product attention threshold; the threshold is not clinically validated. Notifications are generated from application events without a scheduler. Pending-dose and interaction notifications are deferred; the current mock interaction provider returns no data.
-
-## Frontend structure
-
-```text
-frontend/
-  src/
-    api/          — fetch client, typed endpoints
-    components/   — shared UI
-    pages/        — route-level views
-    styles/       — design tokens (SmartMed palette)
-    hooks/
-    types/
-```
-
-Vite dev server proxies `/api` → `http://localhost:8080`. Production build served separately (nginx or Spring static — TBD).
-
-## Security checklist (ongoing)
-
-- Env-based secrets; `.env` gitignored
-- CORS allowlist via `SMARTMED_CORS_ORIGINS`
-- Input validation (`jakarta.validation`) on DTOs
-- Authorization on every patient-scoped resource
-- No stack traces in API responses (global handler)
-- Healthcare disclaimer in UI for interactions
-
-## Phased delivery
-
-| Phase | Scope |
-|-------|--------|
-| 1 | Foundation (this document), health API, frontend shell, MySQL docker |
-| 2 | Auth, users, roles, JWT |
-| 3 | Medication CRUD |
-| 4 | Scheduling & dose logging |
-| 5 | Adherence analytics |
-| 6 | Consent-based caregiver and doctor monitoring |
-| 7 | On-demand medication interaction checker |
-| 8 | Recipient-scoped in-app notification and attention center |
-| 9+ | Future features (external delivery, reports, and additional hardening) |
+Phases 1–8 are implemented: foundation, authentication, medication management, scheduling/adherence, analytics, consent-based monitoring, interaction-check abstraction, and persistent in-app notifications. External notification delivery, clinical interaction data, and other future work are not configured.

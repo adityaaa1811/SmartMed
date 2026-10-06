@@ -112,7 +112,9 @@ export function DoseList({ doses, loading }: { doses: MonitoringDose[]; loading:
   return <div className={styles.doseList}>
     {doses.map((dose) => <article className={styles.dose} key={dose.doseId}>
       <div><strong>{dose.medicationName}</strong><span>{dose.scheduledDate} · {dose.scheduledTime.slice(0, 5)}</span></div>
-      <span className={styles.status} data-status={dose.status}>{dose.status.toLowerCase()}</span>
+      <span className={styles.status} data-status={dose.status}>
+        {dose.status === 'CANCELLED' ? 'cancelled · inactive' : dose.status.toLowerCase()}
+      </span>
     </article>)}
   </div>;
 }

@@ -60,3 +60,7 @@ export async function markNotificationUnread(id: number): Promise<SmartMedNotifi
 export async function markAllNotificationsRead(): Promise<MarkAllReadResult> {
   return (await apiPost<ApiEnvelope<MarkAllReadResult>>('/api/v1/notifications/read-all', undefined, { auth: true })).data;
 }
+
+export function notifyNotificationsChanged(): void {
+  window.dispatchEvent(new Event('smartmed:notifications-changed'));
+}
