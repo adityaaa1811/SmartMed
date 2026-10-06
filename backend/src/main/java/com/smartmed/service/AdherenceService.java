@@ -50,6 +50,16 @@ public class AdherenceService {
                 .map(DoseResponse::from).toList();
     }
 
+    @Transactional(readOnly = true)
+    List<DoseResponse> todayForAuthorizedPatient(Long patientId) {
+        return doseRepository
+                .findAllByScheduledDateAndSchedule_Medication_Patient_IdAndSchedule_ActiveTrueOrderByScheduledTimeAsc(
+                        LocalDate.now(), patientId)
+                .stream()
+                .map(DoseResponse::from)
+                .toList();
+    }
+
     @Transactional
     public DoseResponse markTaken(Long doseId, SmartMedUserDetails principal) {
         return transition(doseId, DoseStatus.TAKEN, principal);

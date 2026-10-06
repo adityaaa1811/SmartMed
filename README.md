@@ -1,8 +1,8 @@
 # SmartMed
 
-**SmartMed – AI-Powered Medication Adherence & Interaction Checker**
+**SmartMed – Medication Management & Adherence Monitoring**
 
-Web application for medication management, scheduling, adherence analytics, caregiver and clinician monitoring, and **informational** drug interaction checking.
+Web application for medication management, scheduling, adherence analytics, and consent-based caregiver and doctor monitoring.
 
 > **Disclaimer:** SmartMed is an educational/software project. It does not diagnose, prescribe, or replace qualified healthcare professionals.
 
@@ -11,12 +11,12 @@ Web application for medication management, scheduling, adherence analytics, care
 | Phase | Status |
 |-------|--------|
 | 1 — Foundation | ✅ Complete |
-| 2 — Authentication & users | ✅ Current |
-| 3 — Medication management | Planned |
-| 4 — Scheduling & adherence | Planned |
-| 5 — Analytics | Planned |
-| 6 — Drug interactions | Planned |
-| 7–12 | Caregiver, doctor, notifications, reports, hardening, polish |
+| 2 — Authentication & users | ✅ Complete |
+| 3 — Medication management | ✅ Complete |
+| 4 — Scheduling & adherence | ✅ Complete |
+| 5 — Adherence analytics | ✅ Complete |
+| 6 — Consent-based caregiver & doctor monitoring | ✅ Complete |
+| 7+ | Future work |
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full plan. Authentication details: [docs/AUTH.md](docs/AUTH.md).
 
@@ -83,7 +83,7 @@ Copy [.env.example](.env.example) and set values locally (never commit `.env`).
 | `SMARTMED_JWT_SECRET` | **Required** — JWT signing secret (min 32 characters) |
 | `SMARTMED_JWT_EXPIRATION_MS` | Access token lifetime (default 86400000) |
 | `SMARTMED_INTERACTION_PROVIDER` | `mock` (default) or future external provider id |
-| `SMARTMED_INTERACTION_API_KEY` | External interaction API key (Phase 6) |
+| `SMARTMED_INTERACTION_API_KEY` | Reserved for future interaction-provider integration |
 
 ## API
 
@@ -102,6 +102,14 @@ Body: `email`, `password`. Returns `200` + JWT or `401` `INVALID_CREDENTIALS`.
 ### `GET /api/v1/users/me` (Bearer token)
 
 Returns the authenticated user profile (no password fields).
+
+## Phase 6: consent-based care team monitoring
+
+Patients create invitations by exact email lookup with POST /api/v1/relationships and a relationshipType of CAREGIVER or DOCTOR. The patient owns consent. A related user can accept (PENDING → ACTIVE) or decline (PENDING → REVOKED); patients can revoke active access (ACTIVE → REVOKED). Revoked relationships remain in the record and a new invitation can be created later.
+
+GET /api/v1/relationships returns only the authenticated patient's relationships or the authenticated caregiver/doctor's related requests. Caregivers can read connected patient summaries, saved doses for today, and analytics under /api/v1/caregiver/patients. Doctors can read connected patient summaries, patient overviews, saved doses, and analytics under /api/v1/doctor/patients. Analytics endpoints accept optional ISO dates in from and to.
+
+Monitoring routes require an active relationship of the matching role. Caregiver and doctor views are read-only; they do not create dose records or change dose status. Responses contain only monitoring fields and never include passwords, password hashes, or JWTs.
 
 Success envelope:
 

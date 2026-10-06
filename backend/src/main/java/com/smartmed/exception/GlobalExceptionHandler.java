@@ -1,6 +1,9 @@
 package com.smartmed.exception;
 
 import com.smartmed.dto.error.ErrorResponse;
+import com.smartmed.exception.DuplicateCareRelationshipException;
+import com.smartmed.exception.InvalidCareRelationshipRequestException;
+import com.smartmed.exception.InvalidCareRelationshipStateException;
 import com.smartmed.dto.response.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
@@ -25,6 +28,24 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .body(ApiResponse.failure("NOT_FOUND", ex.getMessage()));
+    }
+
+    @ExceptionHandler(DuplicateCareRelationshipException.class)
+    public ResponseEntity<ApiResponse<Void>> handleDuplicateRelationship(DuplicateCareRelationshipException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.failure("RELATIONSHIP_CONFLICT", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidCareRelationshipStateException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRelationshipState(InvalidCareRelationshipStateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.failure("INVALID_RELATIONSHIP_STATE", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidCareRelationshipRequestException.class)
+    public ResponseEntity<ApiResponse<Void>> handleRelationshipRequest(InvalidCareRelationshipRequestException ex) {
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.failure("INVALID_RELATIONSHIP_REQUEST", ex.getMessage()));
     }
 
     @ExceptionHandler(EmailAlreadyExistsException.class)

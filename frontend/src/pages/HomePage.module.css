@@ -14,6 +14,9 @@
 .title { margin: var(--space-xs) 0 0; font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 700; color: var(--color-text-primary); line-height: 1.15; }
 .subtitle { margin: var(--space-md) 0 0 64px; color: var(--color-text-secondary); }
 .accountBar { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-md); margin-top: var(--space-md); color: var(--color-text-secondary); font-size: 0.9375rem; }
+.roleNav { position: sticky; top: 0.4rem; z-index: 5; display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 var(--space-lg); padding: 0.45rem; border: 1px solid rgba(55, 85, 52, 0.12); border-radius: var(--radius-md); background: rgba(255, 255, 250, 0.96); box-shadow: var(--shadow-soft); }
+.roleNav a { padding: 0.45rem 0.75rem; border-radius: var(--radius-sm); color: var(--color-secondary); font-size: 0.87rem; font-weight: 650; text-decoration: none; }
+.roleNav a:hover, .roleNav a:focus-visible { background: #eff5e9; outline: 2px solid transparent; }
 .main { flex: 1; display: flex; flex-direction: column; gap: var(--space-lg); }
 .card { background: #fff; border: 1px solid rgba(55, 85, 52, 0.14); border-radius: var(--radius-lg); padding: var(--space-xl); box-shadow: var(--shadow-soft); }
 .cardTitle { margin: 0 0 var(--space-sm); font-size: 1.35rem; color: var(--color-text-primary); }

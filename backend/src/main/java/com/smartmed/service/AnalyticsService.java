@@ -36,19 +36,28 @@ public class AnalyticsService {
     @Transactional(readOnly = true)
     public AnalyticsSummaryResponse summary(LocalDate from, LocalDate to, SmartMedUserDetails principal) {
         requirePatient(principal);
-        DateRange range = resolveRange(from, to);
-        Counts counts = counts(doseRecordRepository.aggregateStatuses(principal.getId(), range.from(), range.to()));
-        return new AnalyticsSummaryResponse(range.from(), range.to(), counts.total(), counts.taken,
-                counts.missed, counts.skipped, counts.pending, counts.percentage());
+        return summaryForPatient(principal.getId(), from, to);
     }
 
     @Transactional(readOnly = true)
     public List<DailyAnalyticsResponse> daily(LocalDate from, LocalDate to, SmartMedUserDetails principal) {
         requirePatient(principal);
+        return dailyForPatient(principal.getId(), from, to);
+    }
+
+    // Internal target-patient methods are called by MonitoringService only after relationship authorization.
+    AnalyticsSummaryResponse summaryForPatient(Long patientId, LocalDate from, LocalDate to) {
+        DateRange range = resolveRange(from, to);
+        Counts counts = counts(doseRecordRepository.aggregateStatuses(patientId, range.from(), range.to()));
+        return new AnalyticsSummaryResponse(range.from(), range.to(), counts.total(), counts.taken,
+                counts.missed, counts.skipped, counts.pending, counts.percentage());
+    }
+
+    List<DailyAnalyticsResponse> dailyForPatient(Long patientId, LocalDate from, LocalDate to) {
         DateRange range = resolveRange(from, to);
         Map<LocalDate, Counts> countsByDay = new LinkedHashMap<>();
         List<DailyDoseCountProjection> rows = doseRecordRepository
-                .aggregateDailyStatuses(principal.getId(), range.from(), range.to());
+                .aggregateDailyStatuses(patientId, range.from(), range.to());
         for (DailyDoseCountProjection row : rows) {
             countsByDay.computeIfAbsent(row.getScheduledDate(), ignored -> new Counts())
                     .add(row.getStatus(), row.getDoseCount());
@@ -63,10 +72,14 @@ public class AnalyticsService {
     public List<MedicationAnalyticsResponse> medications(LocalDate from, LocalDate to,
                                                           SmartMedUserDetails principal) {
         requirePatient(principal);
+        return medicationsForPatient(principal.getId(), from, to);
+    }
+
+    List<MedicationAnalyticsResponse> medicationsForPatient(Long patientId, LocalDate from, LocalDate to) {
         DateRange range = resolveRange(from, to);
         Map<Long, MedicationCounts> countsByMedication = new LinkedHashMap<>();
         List<MedicationDoseCountProjection> rows = doseRecordRepository
-                .aggregateMedicationStatuses(principal.getId(), range.from(), range.to());
+                .aggregateMedicationStatuses(patientId, range.from(), range.to());
         for (MedicationDoseCountProjection row : rows) {
             MedicationCounts counts = countsByMedication.computeIfAbsent(row.getMedicationId(),
                     ignored -> new MedicationCounts(row.getMedicationName()));

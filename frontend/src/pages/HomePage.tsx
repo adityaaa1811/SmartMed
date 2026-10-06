@@ -1,6 +1,6 @@
 import { FormEvent, useCallback, useEffect, useState } from 'react';
 import { ApiError } from '../api/client';
-import { fetchCurrentUser, login, register, type UserDto } from '../api/auth';
+import { fetchCurrentUser, login, register, type Role, type UserDto } from '../api/auth';
 import {
   createMedication,
   createSchedule,
@@ -23,6 +23,9 @@ import {
 } from '../api/medications';
 import { clearAccessToken, getAccessToken } from '../auth/tokenStorage';
 import AnalyticsDashboard from '../components/AnalyticsDashboard';
+import CareTeamPanel from '../components/CareTeamPanel';
+import CaregiverDashboard from '../components/CaregiverDashboard';
+import DoctorDashboard from '../components/DoctorDashboard';
 import styles from './HomePage.module.css';
 
 type AuthMode = 'login' | 'register';
@@ -60,6 +63,7 @@ export default function HomePage() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [registrationRole, setRegistrationRole] = useState<Role>('PATIENT');
   const [medications, setMedications] = useState<Medication[]>([]);
   const [medicationFields, setMedicationFields] = useState<MedicationFields>(blankMedication);
   const [editingMedicationId, setEditingMedicationId] = useState<number | null>(null);
@@ -114,14 +118,11 @@ export default function HomePage() {
     if (!getAccessToken()) return;
     void fetchCurrentUser()
       .then((currentUser) => {
-        if (currentUser.role !== 'PATIENT') {
-          clearAccessToken();
-          setError('Medication management is currently available to patient accounts.');
-          return;
-        }
         setUser(currentUser);
-        void refreshMedications();
-        void refreshAdherence();
+        if (currentUser.role === 'PATIENT') {
+          void refreshMedications();
+          void refreshAdherence();
+        }
       })
       .catch((err: unknown) => {
         clearAccessToken();
@@ -135,16 +136,13 @@ export default function HomePage() {
     setError(null);
     try {
       const result = authMode === 'register'
-        ? await register({ fullName, email, password, role: 'PATIENT' })
+        ? await register({ fullName, email, password, role: registrationRole })
         : await login({ email, password });
-      if (result.user.role !== 'PATIENT') {
-        clearAccessToken();
-        setError('Medication management is currently available to patient accounts.');
-        return;
-      }
       setUser(result.user);
       setPassword('');
-      await Promise.all([refreshMedications(), refreshAdherence()]);
+      if (result.user.role === 'PATIENT') {
+        await Promise.all([refreshMedications(), refreshAdherence()]);
+      }
     } catch (err) {
       setError(messageFor(err));
     } finally {
@@ -295,33 +293,49 @@ export default function HomePage() {
         <div className={styles.brand}>
           <span className={styles.logoMark} aria-hidden />
           <div>
-            <p className={styles.eyebrow}>SmartMed · Patient space</p>
-            <h1 className={styles.title}>Your medication, clearly organized.</h1>
+            <p className={styles.eyebrow}>SmartMed · {user ? user.role.toLowerCase() + ' space' : 'Health dashboard'}</p>
+            <h1 className={styles.title}>{user?.role === 'CAREGIVER' ? 'Care, with the right visibility.' : user?.role === 'DOCTOR' ? 'Patient records, with consent.' : 'Your medication, clearly organized.'}</h1>
           </div>
         </div>
-        <p className={styles.subtitle}>Medication details, schedules, and dose records in one private place.</p>
+        <p className={styles.subtitle}>{user?.role === 'CAREGIVER' ? 'Monitor adherence for patients who have connected with you.' : user?.role === 'DOCTOR' ? 'Review connected patients’ medications, schedules, and adherence.' : 'Medication details, schedules, and dose records in one private place.'}</p>
         {user && <div className={styles.accountBar}><span>Signed in as {user.fullName}</span><button className={styles.textButton} onClick={signOut}>Sign out</button></div>}
       </header>
 
-      <main className={styles.main}>
+      {user && <nav className={styles.roleNav} aria-label="Main navigation">
+        {user.role === 'PATIENT' ? <>
+          <a href="#dashboard">Dashboard</a><a href="#medications-heading">Medications</a>
+          <a href="#analytics-heading">Analytics</a><a href="#care-team">Care Team</a>
+        </> : user.role === 'CAREGIVER' ? <>
+          <a href="#caregiver-dashboard">Dashboard</a><a href="#patients">Patients</a>
+        </> : <>
+          <a href="#doctor-dashboard">Dashboard</a><a href="#patients">Patients</a>
+        </>}
+      </nav>}
+
+      <main id="dashboard" className={styles.main}>
         {error && <div className={styles.alert} role="alert">{error}</div>}
 
         {!user ? (
           <section className={styles.card} aria-labelledby="account-heading">
             <div className={styles.authTabs} role="tablist" aria-label="Account access">
               <button type="button" role="tab" aria-selected={authMode === 'login'} className={authMode === 'login' ? styles.activeTab : styles.tab} onClick={() => { setAuthMode('login'); setError(null); }}>Sign in</button>
-              <button type="button" role="tab" aria-selected={authMode === 'register'} className={authMode === 'register' ? styles.activeTab : styles.tab} onClick={() => { setAuthMode('register'); setError(null); }}>Create patient account</button>
+              <button type="button" role="tab" aria-selected={authMode === 'register'} className={authMode === 'register' ? styles.activeTab : styles.tab} onClick={() => { setAuthMode('register'); setError(null); }}>Create account</button>
             </div>
-            <h2 id="account-heading" className={styles.cardTitle}>{authMode === 'login' ? 'Welcome back' : 'Start your patient account'}</h2>
-            <p className={styles.cardText}>Your medication and dose records are private to your account.</p>
+            <h2 id="account-heading" className={styles.cardTitle}>{authMode === 'login' ? 'Welcome back' : 'Create your SmartMed account'}</h2>
+            <p className={styles.cardText}>Sign in to your patient, caregiver, or doctor account.</p>
             <form className={styles.form} onSubmit={handleAuth}>
-              {authMode === 'register' && <label>Full name<input autoComplete="name" required minLength={2} maxLength={120} value={fullName} onChange={(event) => setFullName(event.target.value)} /></label>}
+              {authMode === 'register' && <>
+                <label>Full name<input autoComplete="name" required minLength={2} maxLength={120} value={fullName} onChange={(event) => setFullName(event.target.value)} /></label>
+                <label>Account role<select value={registrationRole} onChange={(event) => setRegistrationRole(event.target.value as Role)}>
+                  <option value="PATIENT">Patient</option><option value="CAREGIVER">Caregiver</option><option value="DOCTOR">Doctor</option>
+                </select></label>
+              </>}
               <label>Email<input type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} /></label>
               <label>Password<input type="password" autoComplete={authMode === 'login' ? 'current-password' : 'new-password'} required minLength={8} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} /></label>
               <button className={styles.button} type="submit" disabled={authBusy}>{authBusy ? 'Please wait…' : authMode === 'login' ? 'Sign in' : 'Create account'}</button>
             </form>
           </section>
-        ) : (
+        ) : user.role === 'PATIENT' ? (
           <>
             <section className={styles.card} aria-labelledby="medication-form-heading">
               <p className={styles.eyebrow}>Medication management</p>
@@ -422,7 +436,12 @@ export default function HomePage() {
                 </div>)}
               </div>}
             </section>
+            <CareTeamPanel />
           </>
+        ) : user.role === 'CAREGIVER' ? (
+          <CaregiverDashboard />
+        ) : (
+          <DoctorDashboard />
         )}
 
         <aside className={styles.disclaimer} role="note">
