@@ -22,6 +22,7 @@ import {
   type SchedulePayload,
 } from '../api/medications';
 import { clearAccessToken, getAccessToken } from '../auth/tokenStorage';
+import AnalyticsDashboard from '../components/AnalyticsDashboard';
 import styles from './HomePage.module.css';
 
 type AuthMode = 'login' | 'register';
@@ -392,6 +393,8 @@ export default function HomePage() {
                 </article>)}
               </div>}
             </section>
+
+            <AnalyticsDashboard />
 
             <section className={styles.card} aria-labelledby="today-heading">
               <div className={styles.sectionHeading}>

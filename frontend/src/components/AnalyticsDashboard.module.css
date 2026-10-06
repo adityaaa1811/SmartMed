@@ -1,0 +1,53 @@
+.dashboard { padding: 1.5rem; border: 1px solid rgba(55, 85, 52, 0.14); border-radius: var(--radius-lg); background: #fff; box-shadow: var(--shadow-soft); }
+.heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.heading h2 { margin: 0; color: var(--color-text-primary); font-size: 1.35rem; }
+.eyebrow { margin: 0 0 0.3rem; color: var(--color-text-muted); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
+.description { margin: 0.45rem 0 0; color: var(--color-text-secondary); font-size: 0.9rem; }
+.refreshButton, .rangeButton, .activeRange, .applyButton { border: 1px solid rgba(55, 85, 52, 0.23); border-radius: var(--radius-sm); padding: 0.55rem 0.8rem; font: inherit; font-size: 0.85rem; font-weight: 650; cursor: pointer; }
+.refreshButton, .rangeButton { color: var(--color-secondary); background: #fff; }
+.refreshButton:disabled { opacity: 0.6; cursor: wait; }
+.rangeBar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.8rem; margin: 1.25rem 0; padding: 0.8rem; border-radius: var(--radius-md); background: #f7f8f0; }
+.rangeButtons { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.activeRange { color: #fff; background: var(--color-primary); border-color: var(--color-primary); }
+.customRange { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.65rem; }
+.customRange label { display: flex; flex-direction: column; gap: 0.25rem; color: var(--color-text-muted); font-size: 0.75rem; font-weight: 650; }
+.customRange input { width: 145px; padding: 0.45rem 0.55rem; border: 1px solid rgba(55, 85, 52, 0.22); border-radius: var(--radius-sm); color: var(--color-text-primary); background: #fff; font: inherit; }
+.applyButton { color: var(--color-text-on-dark); background: var(--color-primary); border-color: var(--color-primary); }
+.rangeLabel { color: var(--color-text-muted); font-size: 0.8rem; }
+.error { margin: 0.7rem 0; padding: 0.7rem 0.85rem; border-radius: var(--radius-sm); color: #78372e; background: #fff3ef; }
+.state, .empty { padding: 1rem; border-radius: var(--radius-md); color: var(--color-text-secondary); background: #f8f8f2; text-align: center; }
+.metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0.7rem; }
+.metric { display: flex; flex-direction: column; gap: 0.45rem; padding: 0.9rem; border: 1px solid rgba(55, 85, 52, 0.12); border-radius: var(--radius-md); background: #fffefa; }
+.metric span { color: var(--color-text-muted); font-size: 0.78rem; }
+.metric strong { color: var(--color-text-primary); font-size: 1.35rem; }
+.metricEmphasis { background: #f0f5e9; border-color: rgba(55, 107, 73, 0.2); }
+.metricEmphasis strong { color: var(--color-primary); }
+.charts { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(240px, 0.8fr); gap: 0.85rem; margin-top: 0.9rem; }
+.chartCard, .breakdown { min-width: 0; padding: 1rem; border: 1px solid rgba(55, 85, 52, 0.12); border-radius: var(--radius-md); background: #fffefa; }
+.chartHeading h3 { margin: 0; color: var(--color-text-primary); font-size: 1rem; }
+.chartHeading p, .chartNote { margin: 0.35rem 0 0; color: var(--color-text-muted); font-size: 0.8rem; }
+.lineChart { position: relative; height: 250px; margin-top: 0.7rem; }
+.doughnutChart { position: relative; max-width: 340px; height: 250px; margin: 0 auto; }
+.chartNote { text-align: center; }
+.breakdown { margin-top: 0.9rem; }
+.tableScroll { overflow-x: auto; margin-top: 0.7rem; }
+.tableScroll table { width: 100%; border-collapse: collapse; text-align: left; }
+.tableScroll th, .tableScroll td { padding: 0.7rem 0.65rem; border-bottom: 1px solid rgba(55, 85, 52, 0.11); white-space: nowrap; }
+.tableScroll thead th { color: var(--color-text-muted); font-size: 0.75rem; font-weight: 700; }
+.tableScroll tbody th { color: var(--color-text-primary); font-weight: 650; }
+.tableScroll td { color: var(--color-text-secondary); font-size: 0.9rem; }
+
+@media (max-width: 760px) {
+  .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .metric:first-child { grid-column: 1 / -1; }
+  .charts { grid-template-columns: 1fr; }
+}
+@media (max-width: 520px) {
+  .dashboard { padding: 1rem; }
+  .heading { align-items: flex-start; }
+  .rangeBar { align-items: flex-start; }
+  .rangeLabel { width: 100%; }
+  .customRange label, .customRange input { width: 100%; }
+  .customRange { width: 100%; }
+  .lineChart { height: 210px; }
+}
