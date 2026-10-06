@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -45,6 +46,23 @@ public class GlobalExceptionHandler {
                 .toList();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.failure("VALIDATION_ERROR", "Validation failed", details));
+    }
+
+    @ExceptionHandler(InvalidDateRangeException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidDateRange(InvalidDateRangeException ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.failure("INVALID_DATE_RANGE", ex.getMessage()));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidParameter(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.badRequest().body(ApiResponse.failure(
+                "INVALID_PARAMETER", "Invalid value for parameter: " + ex.getName()));
+    }
+
+    @ExceptionHandler(InvalidDoseTransitionException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidDoseTransition(InvalidDoseTransitionException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.failure("INVALID_DOSE_TRANSITION", ex.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

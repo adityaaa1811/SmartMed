@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface MedicationRepository extends JpaRepository<Medication, Long> {
     List<Medication> findAllByPatientIdOrderByCreatedAtDesc(Long patientId);
     Optional<Medication> findByIdAndPatientId(Long id, Long patientId);
+
+    boolean existsByIdAndPatientId(Long id, Long patientId);
 }
