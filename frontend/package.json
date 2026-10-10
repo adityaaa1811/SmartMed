@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "npx tsx --test src/api/__tests__/client.test.ts"
   },
   "dependencies": {
     "chart.js": "^4.5.1",

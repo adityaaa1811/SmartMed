@@ -55,7 +55,16 @@ const blankSchedule = (): ScheduleFields => ({
 
 function messageFor(error: unknown): string {
   if (error instanceof ApiError) {
+    if (error.code === 'TIMEOUT') {
+      return 'The server is taking too long to respond. Please wait a moment and try again.';
+    }
+    if (error.code === 'NETWORK_ERROR') {
+      return 'Could not reach SmartMed. Check that the backend is running and try again.';
+    }
     return error.status === 401 ? 'Your session has expired. Please sign in again.' : error.message;
+  }
+  if (error instanceof Error && error.name === 'AbortError') {
+    return 'The server is taking too long to respond. Please wait a moment and try again.';
   }
   return 'Could not reach SmartMed. Check that the backend is running and try again.';
 }
@@ -142,6 +151,7 @@ export default function HomePage() {
 
   async function handleAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (authBusy) return;
     setAuthBusy(true);
     setError(null);
     try {
