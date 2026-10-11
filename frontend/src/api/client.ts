@@ -2,15 +2,19 @@ import { getAccessToken } from '../auth/tokenStorage';
 
 export const DEFAULT_TIMEOUT_MS = 30000;
 
-const getBaseUrl = (): string => {
+const getRawBaseUrl = (): string => {
   try {
-    return (import.meta?.env?.VITE_API_BASE_URL ?? '').trim().replace(/\/+$/, '');
+    return typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_API_BASE_URL
+      ? import.meta.env.VITE_API_BASE_URL
+      : '';
   } catch {
     return '';
   }
 };
 
-const apiUrl = (path: string) => `${getBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`;
+const API_BASE_URL = getRawBaseUrl().trim().replace(/\/+$/, '');
+
+const apiUrl = (path: string) => `${API_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
 
 export class ApiError extends Error {
   constructor(
