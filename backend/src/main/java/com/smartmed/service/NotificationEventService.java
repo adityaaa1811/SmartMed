@@ -2,6 +2,7 @@ package com.smartmed.service;
 
 import com.smartmed.entity.CareRelationship;
 import com.smartmed.entity.DoseRecord;
+import com.smartmed.entity.Medication;
 import com.smartmed.entity.NotificationRelatedEntityType;
 import com.smartmed.entity.NotificationType;
 import com.smartmed.entity.RelationshipStatus;
@@ -26,6 +27,22 @@ public class NotificationEventService {
                                     CareRelationshipRepository relationshipRepository) {
         this.notificationService = notificationService;
         this.relationshipRepository = relationshipRepository;
+    }
+
+    @Transactional
+    public void lowStock(Medication medication) {
+        User patient = medication.getPatient();
+        String medicationName = medication.getName();
+        long remaining = medication.getQuantity() != null ? medication.getQuantity() : 0L;
+        String unit = medication.getUnit() != null && !medication.getUnit().isBlank()
+                ? " " + medication.getUnit()
+                : " units";
+        String eventKey = "medication:" + medication.getId() + ":low-stock:episode:" + medication.getLowStockEpisode();
+
+        notificationService.createIfAbsent(patient, NotificationType.LOW_STOCK,
+                "Low medication stock",
+                "Low stock alert for " + medicationName + " (" + remaining + unit + " remaining).",
+                NotificationRelatedEntityType.MEDICATION, medication.getId(), eventKey);
     }
 
     @Transactional

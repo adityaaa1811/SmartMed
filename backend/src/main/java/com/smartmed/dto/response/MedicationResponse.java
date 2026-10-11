@@ -14,13 +14,23 @@ public record MedicationResponse(
         LocalDate startDate,
         LocalDate endDate,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        Long quantity,
+        String unit,
+        Long lowStockThreshold,
+        boolean lowStock
 ) {
     public static MedicationResponse from(Medication medication) {
+        boolean lowStock = medication.getLowStockThreshold() != null
+                && medication.getLowStockThreshold() > 0
+                && medication.getQuantity() != null
+                && medication.getQuantity() <= medication.getLowStockThreshold();
         return new MedicationResponse(
                 medication.getId(), medication.getName(), medication.getDosage(),
                 medication.getFrequency(), medication.getInstructions(), medication.getStartDate(),
-                medication.getEndDate(), medication.getCreatedAt(), medication.getUpdatedAt()
+                medication.getEndDate(), medication.getCreatedAt(), medication.getUpdatedAt(),
+                medication.getQuantity(), medication.getUnit(),
+                medication.getLowStockThreshold(), lowStock
         );
     }
 }

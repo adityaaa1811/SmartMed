@@ -1,6 +1,7 @@
 package com.smartmed.controller;
 
 import com.smartmed.dto.request.CreateMedicationRequest;
+import com.smartmed.dto.request.RefillMedicationRequest;
 import com.smartmed.dto.request.UpdateMedicationRequest;
 import com.smartmed.dto.response.ApiResponse;
 import com.smartmed.dto.response.MedicationResponse;
@@ -62,5 +63,12 @@ public class MedicationController {
                                        @AuthenticationPrincipal SmartMedUserDetails principal) {
         medicationService.delete(id, principal);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/refill")
+    public ApiResponse<MedicationResponse> refill(@PathVariable Long id,
+                                                  @Valid @RequestBody RefillMedicationRequest request,
+                                                  @AuthenticationPrincipal SmartMedUserDetails principal) {
+        return ApiResponse.ok(medicationService.refill(id, request, principal));
     }
 }

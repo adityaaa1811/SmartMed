@@ -43,6 +43,16 @@ public class MedicationScheduleService {
         MedicationSchedule schedule = new MedicationSchedule();
         schedule.setMedication(medication);
         apply(schedule, request.frequency(), request.timeOfDay(), request.startDate(), request.endDate(), true);
+        if (request.doseSize() != null) {
+            if (request.doseSize() <= 0) {
+                throw new IllegalArgumentException("Dose size must be greater than zero");
+            }
+            schedule.setDoseSize(request.doseSize());
+            schedule.setDoseSizeVerified(true);
+        } else {
+            schedule.setDoseSize(null);
+            schedule.setDoseSizeVerified(false);
+        }
         return ScheduleResponse.from(scheduleRepository.save(schedule));
     }
 
@@ -73,6 +83,13 @@ public class MedicationScheduleService {
                 .orElseThrow(() -> new ResourceNotFoundException("Schedule not found"));
         apply(schedule, request.frequency(), request.timeOfDay(), request.startDate(),
                 request.endDate(), request.active());
+        if (request.doseSize() != null) {
+            if (request.doseSize() <= 0) {
+                throw new IllegalArgumentException("Dose size must be greater than zero");
+            }
+            schedule.setDoseSize(request.doseSize());
+            schedule.setDoseSizeVerified(true);
+        }
         MedicationSchedule saved = scheduleRepository.save(schedule);
         if (!request.active()) cancelPendingDoses(scheduleId);
         return ScheduleResponse.from(saved);

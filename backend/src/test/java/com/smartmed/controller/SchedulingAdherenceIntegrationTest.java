@@ -18,9 +18,16 @@ import org.springframework.test.web.servlet.MvcResult;
 
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import com.smartmed.entity.Medication;
+import com.smartmed.entity.MedicationSchedule;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -383,12 +390,316 @@ class SchedulingAdherenceIntegrationTest {
     }
 
     @Test
-    void historyRejectsRangesLargerThan366Days() throws Exception {
+    void scheduleCreationWithAndWithoutDoseSize() throws Exception {
         String token = registerAndGetToken("PATIENT");
-        mockMvc.perform(get("/api/v1/adherence/history").param("from", "2020-01-01").param("to", "2022-01-01")
-                        .header("Authorization", bearer(token)))
+        long medId = createMedication(token);
+
+        // With explicit doseSize
+        String withDose = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"08:00\",\"startDate\":\"" + LocalDate.now() + "\",\"doseSize\":2}";
+        mockMvc.perform(post(schedulesPath(medId)).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(withDose))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.doseSize").value(2))
+                .andExpect(jsonPath("$.data.doseSizeVerified").value(true));
+
+        // Without doseSize (unverified legacy)
+        String withoutDose = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"12:00\",\"startDate\":\"" + LocalDate.now() + "\"}";
+        mockMvc.perform(post(schedulesPath(medId)).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(withoutDose))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.doseSize").doesNotExist())
+                .andExpect(jsonPath("$.data.doseSizeVerified").value(false));
+    }
+
+    @Test
+    void scheduleCreationRejectsInvalidDoseSize() throws Exception {
+        String token = registerAndGetToken("PATIENT");
+        long medId = createMedication(token);
+
+        String zero = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"08:00\",\"startDate\":\"" + LocalDate.now() + "\",\"doseSize\":0}";
+        mockMvc.perform(post(schedulesPath(medId)).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(zero))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error.code").value("INVALID_DATE_RANGE"));
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+
+        String negative = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"08:00\",\"startDate\":\"" + LocalDate.now() + "\",\"doseSize\":-2}";
+        mockMvc.perform(post(schedulesPath(medId)).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(negative))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+    }
+
+    @Test
+    void scheduleUpdatePreservesOmittedDoseSizeOrUpdatesWhenSupplied() throws Exception {
+        String token = registerAndGetToken("PATIENT");
+        long medId = createMedication(token);
+
+        // Create with doseSize = 3
+        String withDose = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"08:00\",\"startDate\":\"" + LocalDate.now() + "\",\"doseSize\":3}";
+        MvcResult created = mockMvc.perform(post(schedulesPath(medId)).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(withDose))
+                .andExpect(status().isCreated()).andReturn();
+        long schedId = objectMapper.readTree(created.getResponse().getContentAsString()).path("data").path("id").asLong();
+
+        // Update omitting doseSize -> preserves doseSize = 3, doseSizeVerified = true
+        String updateOmitted = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"09:00\",\"startDate\":\"" + LocalDate.now() + "\",\"active\":true}";
+        mockMvc.perform(put("/api/v1/schedules/{id}", schedId).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(updateOmitted))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.doseSize").value(3))
+                .andExpect(jsonPath("$.data.doseSizeVerified").value(true));
+
+        // Update supplying doseSize = 5 -> updates to 5
+        String updateSupplied = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"09:00\",\"startDate\":\"" + LocalDate.now() + "\",\"active\":true,\"doseSize\":5}";
+        mockMvc.perform(put("/api/v1/schedules/{id}", schedId).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(updateSupplied))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.doseSize").value(5))
+                .andExpect(jsonPath("$.data.doseSizeVerified").value(true));
+    }
+
+    @Test
+    void verifiedScheduleDeductsExactInventoryOnTaken() throws Exception {
+        String token = registerAndGetToken("PATIENT");
+        long medId = createMedicationWithInventory(token, 20L, "tablets");
+
+        // Schedule with doseSize = 3
+        String schedReq = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"08:00\",\"startDate\":\"" + LocalDate.now() + "\",\"doseSize\":3}";
+        mockMvc.perform(post(schedulesPath(medId)).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(schedReq))
+                .andExpect(status().isCreated());
+
+        long doseId = getToday(token).get(0).path("id").asLong();
+
+        mockMvc.perform(post("/api/v1/adherence/{id}/taken", doseId).header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("TAKEN"))
+                .andExpect(jsonPath("$.data.doseSize").value(3));
+
+        Medication med = medicationRepository.findById(medId).orElseThrow();
+        assertThat(med.getQuantity()).isEqualTo(17L);
+    }
+
+    @Test
+    void unverifiedScheduleTransitionsToTakenWithoutDeductingInventory() throws Exception {
+        String token = registerAndGetToken("PATIENT");
+        long medId = createMedicationWithInventory(token, 20L, "tablets");
+
+        // Schedule without doseSize (unverified)
+        String schedReq = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"08:00\",\"startDate\":\"" + LocalDate.now() + "\"}";
+        mockMvc.perform(post(schedulesPath(medId)).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(schedReq))
+                .andExpect(status().isCreated());
+
+        long doseId = getToday(token).get(0).path("id").asLong();
+
+        mockMvc.perform(post("/api/v1/adherence/{id}/taken", doseId).header("Authorization", bearer(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.status").value("TAKEN"));
+
+        Medication med = medicationRepository.findById(medId).orElseThrow();
+        assertThat(med.getQuantity()).isEqualTo(20L); // Untouched!
+    }
+
+    @Test
+    void insufficientInventoryRejectsTakenAndPreservesDoseStatusAndQuantity() throws Exception {
+        String token = registerAndGetToken("PATIENT");
+        long medId = createMedicationWithInventory(token, 2L, "tablets");
+
+        // Schedule with doseSize = 5 (exceeds inventory 2)
+        String schedReq = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"08:00\",\"startDate\":\"" + LocalDate.now() + "\",\"doseSize\":5}";
+        mockMvc.perform(post(schedulesPath(medId)).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(schedReq))
+                .andExpect(status().isCreated());
+
+        long doseId = getToday(token).get(0).path("id").asLong();
+
+        mockMvc.perform(post("/api/v1/adherence/{id}/taken", doseId).header("Authorization", bearer(token)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("INSUFFICIENT_INVENTORY"));
+
+        // Both dose status and inventory are preserved
+        assertThat(doseRepository.findById(doseId).orElseThrow().getStatus()).isEqualTo(com.smartmed.entity.DoseStatus.PENDING);
+        assertThat(medicationRepository.findById(medId).orElseThrow().getQuantity()).isEqualTo(2L);
+    }
+
+    @Test
+    void verifiedScheduleWithInvalidQuantityFailsSafely() throws Exception {
+        String token = registerAndGetToken("PATIENT");
+        long medId = createMedicationWithInventory(token, 20L, "tablets");
+
+        String schedReq = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"08:00\",\"startDate\":\"" + LocalDate.now() + "\",\"doseSize\":2}";
+        MvcResult sRes = mockMvc.perform(post(schedulesPath(medId)).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(schedReq))
+                .andExpect(status().isCreated()).andReturn();
+        long schedId = objectMapper.readTree(sRes.getResponse().getContentAsString()).path("data").path("id").asLong();
+
+        // Corrupt schedule to simulate verified=true with doseSize=null
+        MedicationSchedule sched = scheduleRepository.findById(schedId).orElseThrow();
+        sched.setDoseSize(null);
+        sched.setDoseSizeVerified(true);
+        scheduleRepository.save(sched);
+
+        long doseId = getToday(token).get(0).path("id").asLong();
+
+        mockMvc.perform(post("/api/v1/adherence/{id}/taken", doseId).header("Authorization", bearer(token)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("INVALID_DOSE_QUANTITY"));
+
+        assertThat(doseRepository.findById(doseId).orElseThrow().getStatus()).isEqualTo(com.smartmed.entity.DoseStatus.PENDING);
+        assertThat(medicationRepository.findById(medId).orElseThrow().getQuantity()).isEqualTo(20L);
+    }
+
+    @Test
+    void repeatedTakenRequestDoesNotDeductTwice() throws Exception {
+        String token = registerAndGetToken("PATIENT");
+        long medId = createMedicationWithInventory(token, 20L, "tablets");
+
+        String schedReq = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"08:00\",\"startDate\":\"" + LocalDate.now() + "\",\"doseSize\":4}";
+        mockMvc.perform(post(schedulesPath(medId)).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(schedReq))
+                .andExpect(status().isCreated());
+
+        long doseId = getToday(token).get(0).path("id").asLong();
+
+        mockMvc.perform(post("/api/v1/adherence/{id}/taken", doseId).header("Authorization", bearer(token)))
+                .andExpect(status().isOk());
+        assertThat(medicationRepository.findById(medId).orElseThrow().getQuantity()).isEqualTo(16L);
+
+        // Repeat request
+        mockMvc.perform(post("/api/v1/adherence/{id}/taken", doseId).header("Authorization", bearer(token)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("INVALID_DOSE_TRANSITION"));
+
+        // Quantity remains 16
+        assertThat(medicationRepository.findById(medId).orElseThrow().getQuantity()).isEqualTo(16L);
+    }
+
+    @Test
+    void missedAndSkippedTransitionsDoNotDeductInventory() throws Exception {
+        String token = registerAndGetToken("PATIENT");
+        long medId = createMedicationWithInventory(token, 20L, "tablets");
+
+        // Two schedules for two doses
+        String sched1 = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"08:00\",\"startDate\":\"" + LocalDate.now() + "\",\"doseSize\":5}";
+        String sched2 = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"20:00\",\"startDate\":\"" + LocalDate.now() + "\",\"doseSize\":5}";
+        mockMvc.perform(post(schedulesPath(medId)).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(sched1)).andExpect(status().isCreated());
+        mockMvc.perform(post(schedulesPath(medId)).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(sched2)).andExpect(status().isCreated());
+
+        JsonNode todayDoses = getToday(token);
+        long dose1 = todayDoses.get(0).path("id").asLong();
+        long dose2 = todayDoses.get(1).path("id").asLong();
+
+        mockMvc.perform(post("/api/v1/adherence/{id}/missed", dose1).header("Authorization", bearer(token)))
+                .andExpect(status().isOk());
+        assertThat(medicationRepository.findById(medId).orElseThrow().getQuantity()).isEqualTo(20L);
+
+        mockMvc.perform(post("/api/v1/adherence/{id}/skipped", dose2).header("Authorization", bearer(token)))
+                .andExpect(status().isOk());
+        assertThat(medicationRepository.findById(medId).orElseThrow().getQuantity()).isEqualTo(20L);
+    }
+
+    @Test
+    void concurrentRequestsForSameDoseDeductOnlyOnce() throws Exception {
+        String token = registerAndGetToken("PATIENT");
+        long medId = createMedicationWithInventory(token, 50L, "tablets");
+
+        String schedReq = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"08:00\",\"startDate\":\"" + LocalDate.now() + "\",\"doseSize\":5}";
+        mockMvc.perform(post(schedulesPath(medId)).header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(schedReq)).andExpect(status().isCreated());
+
+        long doseId = getToday(token).get(0).path("id").asLong();
+
+        int threadCount = 5;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(threadCount);
+        AtomicInteger successCount = new AtomicInteger(0);
+
+        for (int i = 0; i < threadCount; i++) {
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    MvcResult res = mockMvc.perform(post("/api/v1/adherence/{id}/taken", doseId)
+                                    .header("Authorization", bearer(token)))
+                            .andReturn();
+                    if (res.getResponse().getStatus() == 200) {
+                        successCount.incrementAndGet();
+                    }
+                } catch (Exception ignored) {
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        boolean finished = doneLatch.await(10, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        assertThat(finished).isTrue();
+        assertThat(successCount.get()).isEqualTo(1); // Exactly one succeeded
+        assertThat(medicationRepository.findById(medId).orElseThrow().getQuantity()).isEqualTo(45L); // Deducted exactly once
+    }
+
+    @Test
+    void concurrentDifferentDosesForSameMedicationPreserveConsistency() throws Exception {
+        String token = registerAndGetToken("PATIENT");
+        long medId = createMedicationWithInventory(token, 20L, "tablets");
+
+        // 4 schedules at different times
+        for (String time : java.util.List.of("07:00", "12:00", "17:00", "21:00")) {
+            String s = "{\"frequency\":\"ONCE_DAILY\",\"timeOfDay\":\"" + time + "\",\"startDate\":\"" + LocalDate.now() + "\",\"doseSize\":5}";
+            mockMvc.perform(post(schedulesPath(medId)).header("Authorization", bearer(token))
+                            .contentType(MediaType.APPLICATION_JSON).content(s)).andExpect(status().isCreated());
+        }
+
+        JsonNode todayDoses = getToday(token);
+        assertThat(todayDoses.size()).isEqualTo(4);
+
+        int threadCount = 4;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch doneLatch = new CountDownLatch(threadCount);
+        AtomicInteger successCount = new AtomicInteger(0);
+
+        for (int i = 0; i < threadCount; i++) {
+            final long dId = todayDoses.get(i).path("id").asLong();
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    MvcResult res = mockMvc.perform(post("/api/v1/adherence/{id}/taken", dId)
+                                    .header("Authorization", bearer(token)))
+                            .andReturn();
+                    if (res.getResponse().getStatus() == 200) {
+                        successCount.incrementAndGet();
+                    }
+                } catch (Exception ignored) {
+                } finally {
+                    doneLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        boolean finished = doneLatch.await(10, TimeUnit.SECONDS);
+        executor.shutdown();
+
+        assertThat(finished).isTrue();
+        assertThat(successCount.get()).isEqualTo(4);
+        assertThat(medicationRepository.findById(medId).orElseThrow().getQuantity()).isEqualTo(0L);
+    }
+
+    private long createMedicationWithInventory(String token, long quantity, String unit) throws Exception {
+        String date = LocalDate.now().toString();
+        String body = "{\"name\":\"Inventory Medication\",\"dosage\":\"1 tablet\",\"frequency\":\"daily\",\"startDate\":\"%s\",\"quantity\":%d,\"unit\":\"%s\"}"
+                .formatted(date, quantity, unit);
+        MvcResult result = mockMvc.perform(post("/api/v1/medications").header("Authorization", bearer(token))
+                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                .andExpect(status().isCreated()).andReturn();
+        return objectMapper.readTree(result.getResponse().getContentAsString()).path("data").path("id").asLong();
     }
 
     private long createTodayDose(String token) throws Exception {

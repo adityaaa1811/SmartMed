@@ -16,14 +16,15 @@ public record DoseResponse(
         LocalDate scheduledDate,
         LocalTime scheduledTime,
         DoseStatus status,
-        Instant takenAt
+        Instant takenAt,
+        Long doseSize
 ) {
     public static DoseResponse from(DoseRecord dose) {
         var medication = dose.getSchedule().getMedication();
         return new DoseResponse(
                 dose.getId(), dose.getSchedule().getId(), medication.getId(), medication.getName(),
                 medication.getDosage(), dose.getScheduledDate(), dose.getScheduledTime(),
-                dose.getStatus(), dose.getTakenAt()
+                dose.getStatus(), dose.getTakenAt(), dose.getSchedule().getDoseSize()
         );
     }
 }

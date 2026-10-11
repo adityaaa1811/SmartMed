@@ -37,6 +37,36 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ApiResponse.failure("INVALID_ADHERENCE_HISTORY_PAGE", ex.getMessage()));
     }
 
+    @ExceptionHandler(InventoryOverflowException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInventoryOverflow(InventoryOverflowException ex) {
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.failure("INVENTORY_OVERFLOW", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InsufficientInventoryException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInsufficientInventory(InsufficientInventoryException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.failure("INSUFFICIENT_INVENTORY", ex.getMessage()));
+    }
+
+    @ExceptionHandler(InvalidDoseQuantityException.class)
+    public ResponseEntity<ApiResponse<Void>> handleInvalidDoseQuantity(InvalidDoseQuantityException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.failure("INVALID_DOSE_QUANTITY", ex.getMessage()));
+    }
+
+    @ExceptionHandler(ArithmeticException.class)
+    public ResponseEntity<ApiResponse<Void>> handleArithmetic(ArithmeticException ex) {
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.failure("INVENTORY_OVERFLOW", "Refill amount would cause inventory overflow"));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.failure("INVALID_REQUEST", ex.getMessage()));
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)

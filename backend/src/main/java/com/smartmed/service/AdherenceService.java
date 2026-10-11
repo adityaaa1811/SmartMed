@@ -3,13 +3,17 @@ package com.smartmed.service;
 import com.smartmed.dto.response.DoseResponse;
 import com.smartmed.entity.DoseRecord;
 import com.smartmed.entity.DoseStatus;
+import com.smartmed.entity.Medication;
 import com.smartmed.entity.MedicationSchedule;
 import com.smartmed.entity.Role;
+import com.smartmed.exception.InsufficientInventoryException;
+import com.smartmed.exception.InvalidDoseQuantityException;
 import com.smartmed.exception.InvalidDateRangeException;
 import com.smartmed.exception.InvalidAdherenceHistoryPageException;
 import com.smartmed.exception.InvalidDoseTransitionException;
 import com.smartmed.exception.ResourceNotFoundException;
 import com.smartmed.repository.DoseRecordRepository;
+import com.smartmed.repository.MedicationRepository;
 import com.smartmed.repository.MedicationScheduleRepository;
 import com.smartmed.repository.UserRepository;
 import com.smartmed.security.SmartMedUserDetails;
@@ -42,18 +46,25 @@ public class AdherenceService {
     private final NotificationEventService notificationEventService;
     private final AdherenceAttentionEvaluator adherenceAttentionEvaluator;
     private final UserRepository userRepository;
+    private final MedicationRepository medicationRepository;
+    private final LowStockAlertService lowStockAlertService;
     private final Clock clock;
 
     public AdherenceService(MedicationScheduleRepository scheduleRepository,
                             DoseRecordRepository doseRepository,
                             NotificationEventService notificationEventService,
                             AdherenceAttentionEvaluator adherenceAttentionEvaluator,
-                            UserRepository userRepository, Clock clock) {
+                            UserRepository userRepository,
+                            MedicationRepository medicationRepository,
+                            LowStockAlertService lowStockAlertService,
+                            Clock clock) {
         this.scheduleRepository = scheduleRepository;
         this.doseRepository = doseRepository;
         this.notificationEventService = notificationEventService;
         this.adherenceAttentionEvaluator = adherenceAttentionEvaluator;
         this.userRepository = userRepository;
+        this.medicationRepository = medicationRepository;
+        this.lowStockAlertService = lowStockAlertService;
         this.clock = clock;
     }
 
@@ -136,6 +147,34 @@ public class AdherenceService {
             throw new InvalidDoseTransitionException(
                     "Dose record is already " + current.getStatus() + " and cannot be changed");
         }
+
+        if (targetStatus == DoseStatus.TAKEN) {
+            MedicationSchedule schedule = current.getSchedule();
+            boolean isVerified = Boolean.TRUE.equals(schedule.getDoseSizeVerified());
+            Long doseSize = schedule.getDoseSize();
+
+            if (isVerified) {
+                if (doseSize == null || doseSize <= 0) {
+                    throw new InvalidDoseQuantityException("Verified schedule contains invalid dose size: " + doseSize);
+                }
+
+                Long medicationId = schedule.getMedication().getId();
+                Medication medication = medicationRepository.findByIdAndPatientIdAndActiveTrueForUpdate(
+                                medicationId, principal.getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Medication not found"));
+
+                long currentStock = medication.getQuantity() != null ? medication.getQuantity() : 0L;
+                if (currentStock < doseSize) {
+                    throw new InsufficientInventoryException(
+                            "Insufficient medication inventory to record dose as taken");
+                }
+
+                medication.setQuantity(currentStock - doseSize);
+                lowStockAlertService.evaluateAndNotify(medication);
+                medicationRepository.saveAndFlush(medication);
+            }
+        }
+
         Instant now = clock.instant();
         int updated = doseRepository.transitionIfPending(doseId, principal.getId(), DoseStatus.PENDING,
                 targetStatus, targetStatus == DoseStatus.TAKEN ? now : null, now);

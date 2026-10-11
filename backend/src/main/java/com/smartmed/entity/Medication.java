@@ -53,6 +53,22 @@ public class Medication {
     @Column(nullable = false)
     private Instant updatedAt;
 
+    // Inventory fields
+    @Column(nullable = false)
+    private Long quantity = 0L;
+
+    @Column(length = 20)
+    private String unit;
+
+    @Column(name = "low_stock_threshold")
+    private Long lowStockThreshold;
+
+    @Column(name = "low_stock_alert_active", nullable = false)
+    private Boolean lowStockAlertActive = false;
+
+    @Column(name = "low_stock_episode", nullable = false)
+    private Long lowStockEpisode = 0L;
+
     @PrePersist
     void onCreate() {
         Instant now = Instant.now();
@@ -84,4 +100,15 @@ public class Medication {
     public void setActive(Boolean active) { this.active = active; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
+
+    public Long getQuantity() { return quantity; }
+    public void setQuantity(Long quantity) { this.quantity = quantity; }
+    public String getUnit() { return unit; }
+    public void setUnit(String unit) { this.unit = unit; }
+    public Long getLowStockThreshold() { return lowStockThreshold; }
+    public void setLowStockThreshold(Long lowStockThreshold) { this.lowStockThreshold = lowStockThreshold; }
+    public Boolean getLowStockAlertActive() { return lowStockAlertActive; }
+    public void setLowStockAlertActive(Boolean lowStockAlertActive) { this.lowStockAlertActive = lowStockAlertActive; }
+    public Long getLowStockEpisode() { return lowStockEpisode; }
+    public void setLowStockEpisode(Long lowStockEpisode) { this.lowStockEpisode = lowStockEpisode; }
 }

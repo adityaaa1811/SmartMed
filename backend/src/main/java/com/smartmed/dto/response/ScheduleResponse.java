@@ -15,6 +15,8 @@ public record ScheduleResponse(
         LocalDate startDate,
         LocalDate endDate,
         Boolean active,
+        Long doseSize,
+        Boolean doseSizeVerified,
         Instant createdAt,
         Instant updatedAt
 ) {
@@ -22,7 +24,8 @@ public record ScheduleResponse(
         return new ScheduleResponse(
                 schedule.getId(), schedule.getMedication().getId(), schedule.getFrequency(),
                 schedule.getTimeOfDay(), schedule.getStartDate(), schedule.getEndDate(),
-                schedule.getActive(), schedule.getCreatedAt(), schedule.getUpdatedAt()
+                schedule.getActive(), schedule.getDoseSize(), schedule.getDoseSizeVerified(),
+                schedule.getCreatedAt(), schedule.getUpdatedAt()
         );
     }
 }

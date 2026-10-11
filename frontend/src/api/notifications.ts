@@ -1,8 +1,8 @@
 import { apiGet, apiPost } from './client';
 import type { ApiEnvelope } from './health';
 
-export type NotificationType = 'MISSED_DOSE' | 'ADHERENCE_ATTENTION' | 'CARE_RELATIONSHIP';
-export type NotificationRelatedEntityType = 'DOSE' | 'CARE_RELATIONSHIP' | 'ADHERENCE_PERIOD';
+export type NotificationType = 'MISSED_DOSE' | 'ADHERENCE_ATTENTION' | 'CARE_RELATIONSHIP' | 'LOW_STOCK';
+export type NotificationRelatedEntityType = 'DOSE' | 'CARE_RELATIONSHIP' | 'ADHERENCE_PERIOD' | 'MEDICATION';
 
 export interface SmartMedNotification {
   id: number;

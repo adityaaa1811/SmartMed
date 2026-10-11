@@ -14,10 +14,15 @@ class FlywayMigrationTest {
         String url = "jdbc:h2:mem:flyway_schema_test;MODE=MySQL;DB_CLOSE_DELAY=-1";
         Flyway flyway = Flyway.configure().dataSource(url, "sa", "")
                 .locations("classpath:db/migration").load();
-        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(4);
+        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(7);
         try (var connection = DriverManager.getConnection(url, "sa", "");
              var statement = connection.createStatement();
-             var result = statement.executeQuery("SELECT active FROM medications")) {
+             var result = statement.executeQuery("SELECT active, low_stock_threshold, low_stock_alert_active, low_stock_episode FROM medications")) {
+            assertThat(result.next()).isFalse();
+        }
+        try (var connection = DriverManager.getConnection(url, "sa", "");
+             var statement = connection.createStatement();
+             var result = statement.executeQuery("SELECT dose_size, dose_size_verified FROM medication_schedules")) {
             assertThat(result.next()).isFalse();
         }
     }
@@ -45,7 +50,7 @@ class FlywayMigrationTest {
         }
 
         assertThat(Flyway.configure().dataSource(url, "sa", "").locations("classpath:db/migration")
-                .load().migrate().migrationsExecuted).isEqualTo(2);
+                .load().migrate().migrationsExecuted).isEqualTo(5);
         try (var connection = DriverManager.getConnection(url, "sa", "");
              var statement = connection.createStatement();
              var result = statement.executeQuery("SELECT status FROM dose_records ORDER BY id")) {

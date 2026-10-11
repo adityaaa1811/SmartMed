@@ -48,6 +48,12 @@ public class MedicationSchedule {
     @Column(nullable = false)
     private Boolean active = true;
 
+    @Column(name = "dose_size")
+    private Long doseSize;
+
+    @Column(name = "dose_size_verified", nullable = false)
+    private Boolean doseSizeVerified = false;
+
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -79,6 +85,10 @@ public class MedicationSchedule {
     public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
     public Boolean getActive() { return active; }
     public void setActive(Boolean active) { this.active = active; }
+    public Long getDoseSize() { return doseSize; }
+    public void setDoseSize(Long doseSize) { this.doseSize = doseSize; }
+    public Boolean getDoseSizeVerified() { return doseSizeVerified; }
+    public void setDoseSizeVerified(Boolean doseSizeVerified) { this.doseSizeVerified = doseSizeVerified; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
 }
