@@ -16,17 +16,17 @@ All major academic and technical documents for SmartMed are available below.
 
 | Document | Description | File |
 |---|---|---|
-| 📄 Project Report | Detailed project report covering the problem statement, objectives, feasibility, system design, implementation, testing, and future scope. | [View Project Report (PDF)](docs/project-documents/NEW%20SMARTMED%20project%20report.pdf) |
+| 📄 Project Report | Detailed project report covering the problem statement, objectives, feasibility, system design, implementation, testing, and future scope. | [View Project Report (PDF)](https://drive.google.com/file/d/1tZrpEQceSTMWc1JgQjNNoWGoWWB5uszg/view?usp=drive_link) |
 | 📑 IEEE Research Paper | Research-style paper describing the architecture, security model, consent-based monitoring, data integrity, implementation, and verification approach. | [Read Research Paper (PDF)](https://drive.google.com/file/d/1xfpmggbeITq9FlKnfAIg76UX7ZLeivmr/view?usp=drive_link) |
-| 🎯 Project Presentation | Visual presentation covering the problem, proposed solution, objectives, architecture, functional modules, security, workflows, limitations, and future enhancements. | [View Project Presentation (PPTX)](docs/project-documents/SmartMed_Impactful_Project_Presentation.pptx) |
-| 📋 Software Requirements Specification | IEEE-style SRS documenting functional requirements, non-functional requirements, interfaces, workflows, security, acceptance criteria, and traceability. | [Read SRS Document (PDF)](docs/project-documents/SmartMed_SRS_IEEE_Style.pdf) |
+| 🎯 Project Presentation | Visual presentation covering the problem, proposed solution, objectives, architecture, functional modules, security, workflows, limitations, and future enhancements. | [View Project Presentation (PPTX)](https://docs.google.com/presentation/d/1b_UpFRMczwv8ZWJUn6Tp8JQkq_LTQBiD/edit?usp=drive_link&ouid=118155367749229240555&rtpof=true&sd=true) |
+| 📋 Software Requirements Specification | IEEE-style SRS documenting functional requirements, non-functional requirements, interfaces, workflows, security, acceptance criteria, and traceability. | [Read SRS Document (PDF)](https://drive.google.com/file/d/1_g-mDL54bkQg3JtUXr9IsZTATabKZyXT/view?usp=drive_link) |
 
 ### Quick Access
 
-- [Project Report](docs/project-documents/NEW%20SMARTMED%20project%20report.pdf)
+- [Project Report](https://drive.google.com/file/d/1tZrpEQceSTMWc1JgQjNNoWGoWWB5uszg/view?usp=drive_link)
 - [IEEE Research Paper](https://drive.google.com/file/d/1xfpmggbeITq9FlKnfAIg76UX7ZLeivmr/view?usp=drive_link)
-- [Project Presentation](docs/project-documents/SmartMed_Impactful_Project_Presentation.pptx)
-- [Software Requirements Specification (SRS)](docs/project-documents/SmartMed_SRS_IEEE_Style.pdf)
+- [Project Presentation](https://docs.google.com/presentation/d/1b_UpFRMczwv8ZWJUn6Tp8JQkq_LTQBiD/edit?usp=drive_link&ouid=118155367749229240555&rtpof=true&sd=true)
+- [Software Requirements Specification (SRS)](https://drive.google.com/file/d/1_g-mDL54bkQg3JtUXr9IsZTATabKZyXT/view?usp=drive_link)
 
 > **Note:** GitHub allows visitors to open and preview PDF files and download PowerPoint presentations. These links provide access to the complete documents; GitHub Markdown does not embed a full PDF viewer or interactive PowerPoint slideshow directly inside the README.
 
