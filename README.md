@@ -1,70 +1,191 @@
-# SmartMed
 
-**SmartMed – Medication Management & Adherence Monitoring**
+# SmartMed 💊
+### Medication Management & Adherence Monitoring System
 
-Web application for medication management, scheduling, adherence analytics, and consent-based caregiver and doctor monitoring.
+SmartMed is a web-based application designed to organize medication records, schedules, dose history, adherence analytics, and consent-based caregiver and doctor monitoring.
 
-> **Disclaimer:** SmartMed is an educational/software project. It does not diagnose, prescribe, or replace qualified healthcare professionals.
+The project combines a modern React frontend with a Java Spring Boot backend and MySQL database, with an emphasis on security, data integrity, patient-controlled consent, and maintainable software architecture.
 
-## Features (roadmap)
+> **Disclaimer:** SmartMed is an educational software project. It does not diagnose, prescribe, guarantee medication safety, or replace qualified healthcare professionals.
 
-| Phase | Status |
-|-------|--------|
-| 1 — Foundation | ✅ Complete |
-| 2 — Authentication & users | ✅ Complete |
-| 3 — Medication management | ✅ Complete |
-| 4 — Scheduling & adherence | ✅ Complete |
-| 5 — Adherence analytics | ✅ Complete |
-| 6 — Consent-based caregiver & doctor monitoring | ✅ Complete |
-| 7 — Medication interaction checker | ✅ Complete |
-| 8 — Attention center & in-app notifications | ✅ Complete |
-| 9+ | Future work |
+---
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for the full plan. Authentication details: [docs/AUTH.md](docs/AUTH.md).
+## 📚 Project Documentation & Deliverables
 
-## Tech stack
+All major academic and technical documents for SmartMed are available below.
 
-| Layer | Technology |
-|-------|------------|
-| Backend | Java 17, Spring Boot 3.5, Spring Web, Data JPA, Security, Validation, Actuator |
-| Database | MySQL 8 with Flyway migrations |
-| Frontend | React 18, Vite 5, TypeScript |
-| Build | Maven (backend), npm (frontend) |
+| Document | Description | File |
+|---|---|---|
+| 📄 Project Report | Detailed project report covering the problem statement, objectives, feasibility, system design, implementation, testing, and future scope. | [View Project Report (PDF)](docs/project-documents/NEW%20SMARTMED%20project%20report.pdf) |
+| 📑 IEEE Research Paper | Research-style paper describing the architecture, security model, consent-based monitoring, data integrity, implementation, and verification approach. | [Read Research Paper (PDF)](docs/project-documents/SmartMed_IEEE_Research_Paper.pdf) |
+| 🎯 Project Presentation | Visual presentation covering the problem, proposed solution, objectives, architecture, functional modules, security, workflows, limitations, and future enhancements. | [View Project Presentation (PPTX)](docs/project-documents/SmartMed_Impactful_Project_Presentation.pptx) |
+| 📋 Software Requirements Specification | IEEE-style SRS documenting functional requirements, non-functional requirements, interfaces, workflows, security, acceptance criteria, and traceability. | [Read SRS Document (PDF)](docs/project-documents/SmartMed_SRS_IEEE_Style.pdf) |
 
-## Prerequisites
+### Quick Access
 
-- **JDK 17+**
-- **Maven 3.9+** (or use the included `./mvnw` wrapper in `backend/`)
-- **Node.js 18+** and npm
-- **Docker** (recommended for local MySQL)
+- [Project Report](docs/project-documents/NEW%20SMARTMED%20project%20report.pdf)
+- [IEEE Research Paper](docs/project-documents/SmartMed_IEEE_Research_Paper.pdf)
+- [Project Presentation](docs/project-documents/SmartMed_Impactful_Project_Presentation.pptx)
+- [Software Requirements Specification (SRS)](docs/project-documents/SmartMed_SRS_IEEE_Style.pdf)
 
-## Quick start
+> **Note:** GitHub allows visitors to open and preview PDF files and download PowerPoint presentations. These links provide access to the complete documents; GitHub Markdown does not embed a full PDF viewer or interactive PowerPoint slideshow directly inside the README.
 
-### 1. Database (MySQL)
+---
 
-From the repository root, copy `.env.example` to `.env`, then run:
+## ✨ Features
+
+| Module | Description | Status |
+|---|---|---|
+| Foundation | Application architecture, configuration, and project setup | ✅ Complete |
+| Authentication & Users | Registration, login, JWT authentication, and user profiles | ✅ Complete |
+| Medication Management | Create, view, update, and deactivate medication records | ✅ Complete |
+| Scheduling & Adherence | Medication schedules, dose generation, and dose tracking | ✅ Complete |
+| Adherence Analytics | Date-filtered history and adherence summaries | ✅ Complete |
+| Caregiver & Doctor Monitoring | Consent-based, role-matched, read-only access | ✅ Complete |
+| Medication Interaction Checker | Provider-based informational interaction-checking workflow | ✅ Complete |
+| Attention Center & Notifications | In-app notifications and adherence-related attention events | ✅ Complete |
+| Future Enhancements | Additional integrations, hardening, and validation | 🔄 Planned |
+
+**Important limitation:** The current interaction-checking provider is a mock implementation. It does not contain a real clinical drug-interaction database.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technologies |
+|---|---|
+| Frontend | React 18, TypeScript, Vite 5 |
+| Backend | Java 17, Spring Boot 3, Spring Web, Spring Data JPA |
+| Security | Spring Security, JWT, BCrypt, validation, rate limiting |
+| Database | MySQL 8 |
+| Database Migrations | Flyway |
+| Testing | JUnit, Spring Boot Test, H2 test profile |
+| Build Tools | Maven Wrapper, npm |
+| Visualization | Chart.js |
+| Deployment | Vercel, Railway |
+
+---
+
+## 🏗️ System Architecture
+
+SmartMed follows a three-tier architecture.
+
+```text
+┌──────────────────────────────────────┐
+│          Presentation Layer           │
+│       React + TypeScript + Vite       │
+│    Forms, dashboards, and analytics   │
+└──────────────────┬───────────────────┘
+                   │ REST / JSON
+                   ▼
+┌──────────────────────────────────────┐
+│          Application Layer            │
+│          Java + Spring Boot            │
+│ Controllers → Services → Repositories │
+│ Authentication and authorization      │
+└──────────────────┬───────────────────┘
+                   │ JPA / SQL
+                   ▼
+┌──────────────────────────────────────┐
+│           Data Layer                  │
+│              MySQL 8                  │
+│       Flyway-managed schema            │
+└──────────────────────────────────────┘
+```
+
+### Core Design Principles
+
+- Separation of presentation, business logic, and persistence.
+- Server-side authentication and authorization.
+- Patient ownership checks for medication-related operations.
+- Explicit, revocable consent for care-team monitoring.
+- Transaction-aware dose generation and duplicate prevention.
+- Preservation of historical dose records.
+- Version-controlled database migrations.
+- Automated tests for important functional and security behaviours.
+
+For additional implementation details, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/AUTH.md](docs/AUTH.md), and [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md).
+
+---
+
+## 🔐 Security & Consent Model
+
+SmartMed implements several application-level security controls:
+
+- **JWT authentication:** Protected API routes require a valid bearer token.
+- **Password protection:** Passwords are hashed using BCrypt.
+- **Server-side authorization:** Permissions are determined using the authenticated account and current database state.
+- **Ownership enforcement:** Patient-owned records are checked against the authenticated patient.
+- **Role-based access:** Caregivers and doctors can access only permitted monitoring routes.
+- **Consent management:** Patients can invite, approve through acceptance, and revoke care-team access.
+- **Read-only monitoring:** Caregivers and doctors cannot change patient dose status through monitoring routes.
+- **Authentication rate limiting:** Registration and login requests are rate-limited.
+- **Data integrity:** Database constraints and controlled state transitions help prevent duplicate dose records and preserve history.
+
+Care-team relationships use the following states:
+
+`PENDING` → `ACTIVE` → `REVOKED`
+
+A matching active relationship is required for monitoring access. Revoked relationships remain in the record for traceability.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+Install the following tools:
+
+- JDK 17 or later
+- Maven 3.9+ (or use the included Maven Wrapper)
+- Node.js 18+ and npm
+- Docker, recommended for running MySQL locally
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/adityaaa1811/SmartMed.git
+cd SmartMed
+```
+
+### 2. Configure the Environment
+
+Copy `.env.example` to `.env` in the repository root and configure the local database values.
+
+Never commit `.env` or production secrets to GitHub.
+
+### 3. Start the Database
 
 ```bash
 cd database
 docker compose --env-file ../.env up -d
+cd ..
 ```
 
-MySQL binds to `127.0.0.1` only. The example credentials are for local development only.
+MySQL is configured for local development. Use the repository's database configuration and local credentials.
 
-### 2. Backend
+### 4. Start the Backend
 
 ```bash
 cd backend
+
 export SMARTMED_JWT_SECRET="base64:$(openssl rand -base64 32)"
 export SMARTMED_DB_SSL_MODE=DISABLED
 export SMARTMED_DB_USERNAME=smartmed
 export SMARTMED_DB_PASSWORD='local-dev-db-change-me'
+
 ./mvnw spring-boot:run
 ```
 
-API health: [http://localhost:8080/api/v1/health](http://localhost:8080/api/v1/health)
+The disabled database TLS setting is intended only for the documented local development setup. Do not reuse it for a public database connection.
 
-### 3. Frontend
+Backend health endpoint:
+
+[http://localhost:8080/api/v1/health](http://localhost:8080/api/v1/health)
+
+### 5. Start the Frontend
+
+Open a separate terminal:
 
 ```bash
 cd frontend
@@ -72,129 +193,223 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173). The dev server proxies `/api` to the backend.
+Open the application:
 
-## Environment variables
+[http://localhost:5173](http://localhost:5173)
 
-Copy [.env.example](.env.example) to `.env` for local database values, then export the backend variables in your shell. Never commit `.env`. Flyway creates or upgrades the schema; Hibernate validates it and does not auto-update tables.
+The Vite development server proxies `/api` requests to the backend.
+
+---
+
+## ⚙️ Environment Variables
 
 | Variable | Purpose |
-|----------|---------|
+|---|---|
 | `SMARTMED_DB_URL` | Local-profile JDBC URL override |
-| `SMARTMED_DB_USERNAME` / `SMARTMED_DB_PASSWORD` | Database credentials |
-| `SMARTMED_DB_HOST` / `SMARTMED_DB_PORT` / `SMARTMED_DB_NAME` | Production database address and name (Railway `MYSQL*` variables are accepted as fallbacks) |
-| `SMARTMED_DB_SSL_MODE` | Required in production. Use `DISABLED` only over Railway private networking; use `VERIFY_IDENTITY` for public/external MySQL. |
-| JVM truststore settings | Optional external-MySQL CA configuration through `JAVA_TOOL_OPTIONS` (`javax.net.ssl.trustStore`, `trustStoreType`, and `trustStorePassword`). |
-| `SMARTMED_JPA_DDL` | Local-profile Hibernate schema mode (`validate` by default; production is fixed to `validate`) |
-| `SMARTMED_FLYWAY_ENABLED` | Migration control (`true` by default; tests disable Flyway for H2 create-drop) |
-| `SMARTMED_CORS_ORIGINS` | Explicit comma-separated frontend origins |
-| `SMARTMED_TIMEZONE` | Calendar timezone (defaults to `Asia/Kolkata`) |
-| `SMARTMED_JWT_SECRET` | Required, private JWT signing key (32+ bytes; production requires `base64:` encoded key material) |
-| `SMARTMED_LOGIN_FAILURE_LIMIT` / `SMARTMED_REGISTRATION_LIMIT` | Per-IP auth limits; defaults 10 failures and 8 registrations per 15 minutes |
-| `SMARTMED_JWT_EXPIRATION_MS` | Access token lifetime (default 86400000) |
-| `SMARTMED_INTERACTION_PROVIDER` | `mock` (default) or future external provider id |
-| `SMARTMED_INTERACTION_API_KEY` | Reserved for future interaction-provider integration |
+| `SMARTMED_DB_USERNAME` | Database username |
+| `SMARTMED_DB_PASSWORD` | Database password |
+| `SMARTMED_DB_HOST` | Database hostname |
+| `SMARTMED_DB_PORT` | Database port |
+| `SMARTMED_DB_NAME` | Database name |
+| `SMARTMED_DB_SSL_MODE` | Database TLS mode |
+| `SMARTMED_CORS_ORIGINS` | Allowed frontend origins |
+| `SMARTMED_TIMEZONE` | Application calendar timezone; defaults to `Asia/Kolkata` |
+| `SMARTMED_JWT_SECRET` | Private JWT signing key |
+| `SMARTMED_JWT_EXPIRATION_MS` | Access-token lifetime; default `86400000` |
+| `SMARTMED_LOGIN_FAILURE_LIMIT` | Login failure limit |
+| `SMARTMED_REGISTRATION_LIMIT` | Registration rate limit |
+| `SMARTMED_FLYWAY_ENABLED` | Flyway migration control |
+| `SMARTMED_JPA_DDL` | Local-profile Hibernate schema mode |
+| `SMARTMED_INTERACTION_PROVIDER` | Interaction provider identifier; defaults to `mock` |
+| `SMARTMED_INTERACTION_API_KEY` | Reserved for future provider integration |
 
-## API
+Production deployments must use securely managed secrets, explicitly configured database connectivity, and verified TLS when connecting to public or external MySQL endpoints.
 
-### `GET /api/v1/health` (public)
+Flyway manages schema migrations. Hibernate validates the schema rather than automatically updating production tables.
 
-Reports that the application process is alive. Actuator `/actuator/health/liveness` is the liveness probe; `/actuator/health/readiness` additionally checks the database. Actuator exposes health only and hides component details.
+---
 
-### `POST /api/v1/auth/register` (public)
+## 🔌 API Overview
 
-Body: `fullName`, `email`, `password` (min 8). Public registration always creates a `PATIENT`; elevated roles must be assigned administratively. Returns `201` + JWT.
+The backend exposes versioned REST endpoints under `/api/v1`.
 
-Adherence history accepts optional `from`/`to` ISO dates and `page`/`pageSize` (default page `0`, page size `50`, maximum `100`). Analytics accepts optional date ranges up to 366 days.
+| Method | Endpoint | Access |
+|---|---|---|
+| `GET` | `/api/v1/health` | Public |
+| `POST` | `/api/v1/auth/register` | Public |
+| `POST` | `/api/v1/auth/login` | Public |
+| `GET` | `/api/v1/users/me` | Authenticated |
+| `GET/POST` | `/api/v1/relationships` | Authenticated |
+| `POST` | `/api/v1/interactions/check` | Patient |
+| `GET` | `/api/v1/notifications` | Authenticated |
+| `GET` | `/api/v1/caregiver/patients` | Authorized caregiver |
+| `GET` | `/api/v1/doctor/patients` | Authorized doctor |
 
-### `POST /api/v1/auth/login` (public)
+The endpoints shown are representative examples; consult the backend implementation for the complete route list and request/response contracts.
 
-Body: `email`, `password`. Returns `200` + JWT or `401` `INVALID_CREDENTIALS`.
+### Authentication
 
-### `GET /api/v1/users/me` (Bearer token)
+Registration accepts a full name, email address, and password. Public registration creates a `PATIENT` account. Login returns a JWT when credentials are valid.
 
-Returns the authenticated user profile (no password fields).
+Protected endpoints require a bearer token.
 
-## Phase 6: consent-based care team monitoring
+### Medication Interaction Checker
 
-Patients create invitations by exact email lookup with POST /api/v1/relationships and a relationshipType of CAREGIVER or DOCTOR. The patient owns consent. A related user can accept (PENDING → ACTIVE) or decline (PENDING → REVOKED); patients can revoke active access (ACTIVE → REVOKED). Revoked relationships remain in the record and a new invitation can be created later.
+The interaction workflow validates medication ownership before submitting selected medication names to the configured provider.
 
-GET /api/v1/relationships returns only the authenticated patient's relationships or the authenticated caregiver/doctor's related requests. Caregivers can read connected patient summaries, saved doses for today, and analytics under /api/v1/caregiver/patients. Doctors can read connected patient summaries, patient overviews, saved doses, and analytics under /api/v1/doctor/patients. Analytics endpoints accept optional ISO dates in from and to.
+- `SUCCESS`: Interaction records were returned by the provider.
+- `NO_DATA`: No interaction records were returned. This does **not** establish that the combination is safe.
+- Provider unavailable: The API reports a provider error.
 
-Monitoring routes require an active relationship of the matching role. Caregiver and doctor views are read-only; they do not create dose records or change dose status. Responses contain only monitoring fields and never include passwords, password hashes, or JWTs.
+The current mock provider contains no real clinical interaction data. Results are informational and do not replace advice from a doctor or pharmacist.
 
-## Phase 7: medication interaction checker
+### Adherence Analytics
 
-`POST /api/v1/interactions/check` is available to authenticated PATIENT users only. The request contains `medicationIds`; the server derives the patient from the JWT, verifies every medication belongs to that patient, and sends only the selected medication names to the injected `DrugInteractionProvider`. Mixed or foreign IDs fail the whole request.
+Analytics summarize recorded application events over a selected date range. History supports pagination, and analytics date ranges are bounded.
 
-The provider is on-demand and results are not stored. `SUCCESS` means provider interaction records were returned; `NO_DATA` means the provider returned no records, which does not establish that no interactions exist. Provider failures return HTTP 503 with `INTERACTION_PROVIDER_UNAVAILABLE` and `PROVIDER_UNAVAILABLE` response data. The UI states these outcomes separately and displays: “Interaction results are informational and do not replace advice from a doctor or pharmacist.”
+The application's 70% attention threshold is product logic, not a medically validated measure. Missing records cannot establish whether a dose was taken.
 
-The existing provider abstraction remains the integration point. The configured `mock` provider returns an empty result and contains no real clinical interaction data. No external medical API or interaction database is configured.
+---
 
-## Phase 8: attention center and in-app notifications
+## 🔔 Attention Center & Notifications
 
-SmartMed stores recipient-owned in-app notifications for missed-dose events, care-relationship changes, and month-to-date adherence attention. `GET /api/v1/notifications` returns a page (default 20, maximum 50) and supports `unreadOnly=true`; `/unread-count`, `/{id}/read`, `/{id}/unread`, and `/read-all` are scoped to the authenticated recipient. Duplicate events are prevented by a recipient/type/event key backed by a database uniqueness constraint.
+SmartMed supports recipient-owned in-app notifications for selected application events, including:
 
-Missed-dose notifications are created with the dose state transition. Monitoring notifications go only to caregivers/doctors with an ACTIVE matching relationship at that time. Adherence attention uses the existing analytics calculation for the current calendar month; it requires at least three recorded doses and a result below the 70% SmartMed product threshold. This threshold is an application attention rule, not a medically validated measure. Pending-dose notifications are deferred because SmartMed has no configured timing rule that establishes when a pending dose needs attention.
+- Missed-dose events
+- Care-relationship changes
+- Month-to-date adherence attention
 
-Notifications are generated synchronously from existing application events; there is no background scheduler. Interaction notifications are deferred: the configured mock provider returns no interaction data, and provider unavailability is not persisted as a notification. Notifications are informational software events, not diagnoses, risk predictions, treatment recommendations, or emergency alerts. Flyway owns the database schema; Hibernate uses `validate` in production.
+Notifications are scoped to the authenticated recipient. Duplicate events are prevented using a database-backed uniqueness constraint.
 
-Success envelope:
+Notifications are informational software events. They are not diagnoses, emergency alerts, risk predictions, or treatment recommendations.
 
-```json
-{ "success": true, "data": { } }
-```
+---
 
-Errors:
+## 🧪 Testing
 
-```json
-{
-  "success": false,
-  "error": { "code": "INVALID_CREDENTIALS", "message": "Invalid email or password" }
-}
-```
-
-See [docs/AUTH.md](docs/AUTH.md) for flows and curl examples.
-
-## Project layout
-
-See [docs/PROJECT_STRUCTURE.md](docs/PROJECT_STRUCTURE.md).
-
-## Tests
+Run backend tests using the Maven Wrapper:
 
 ```bash
-cd backend && ./mvnw test
+cd backend
+./mvnw test
 ```
 
-Tests use an in-memory H2 profile (`application-test.properties`).
+Tests use an in-memory H2 profile where configured.
 
-## Repository
+Before production use or final evaluation, verify migrations and application behaviour against MySQL 8, including relevant authorization, concurrency, and database-integrity scenarios.
 
-[https://github.com/adityaaa1811/SmartMed](https://github.com/adityaaa1811/SmartMed)
+---
 
-## Production Deployment
+## ☁️ Production Deployment
 
-SmartMed supports a Vercel frontend, Railway Spring Boot backend, and Railway MySQL database. Configure deployment values in the provider dashboards; do not commit secrets or deployment-specific URLs.
+SmartMed supports a deployment architecture using:
 
-### Frontend (Vercel)
+- **Frontend:** Vercel
+- **Backend:** Railway
+- **Database:** Railway MySQL
 
-- Set the project root to `frontend`; use `npm run build` and `dist` as the output directory.
-- Set `VITE_API_BASE_URL` to the HTTPS origin of the deployed Railway backend, with no `/api` suffix. Set `VITE_SMARTMED_TIMEZONE` to the same IANA timezone as `SMARTMED_TIMEZONE`. Leave the API URL unset locally to use the Vite `/api` proxy.
-- Set the backend CORS origin to the exact Vercel production origin (and preview origins only if needed).
+### Frontend
 
-### Backend (Railway)
+Configure the Vercel project root as `frontend`.
 
-- Set the service root directory to `backend`; use Java 17 and the included Maven wrapper. Build with `./mvnw -B package -DskipTests`; start with `java -jar target/smartmed-backend-0.1.0-SNAPSHOT.jar`.
-- Set `SPRING_PROFILES_ACTIVE=prod`. Railway supplies `PORT`.
-- Configure `SMARTMED_DB_HOST`, `SMARTMED_DB_PORT`, `SMARTMED_DB_NAME`, `SMARTMED_DB_USERNAME`, and `SMARTMED_DB_PASSWORD`; Railway's `MYSQLHOST`, `MYSQLPORT`, `MYSQLDATABASE`, `MYSQLUSER`, and `MYSQLPASSWORD` names are accepted as fallbacks. These values are required rather than replaced with production defaults.
-- Choose the database connection mode explicitly with `SMARTMED_DB_SSL_MODE`. If the backend and MySQL are in the same Railway project environment and the backend connects to the database's private `.railway.internal` address, Railway says service traffic is encrypted by its WireGuard private network. In that specific setup, set `SMARTMED_DB_SSL_MODE=DISABLED`; this disables MySQL-protocol TLS and relies on Railway's encrypted private transport, not certificate identity verification. Do not use this mode for a public database connection. [Railway private networking documentation](https://docs.railway.com/networking/private-networking)
-- If that private MySQL account uses MySQL 8's `caching_sha2_password` authentication, also set `SMARTMED_DB_ALLOW_PUBLIC_KEY_RETRIEVAL=true`. Use this only over Railway's private WireGuard network; Connector/J's public-key retrieval is off by default because an untrusted network could substitute the key. For a public/external connection keep it `false` and use verified TLS. [Connector/J authentication requirements](https://dev.mysql.com/doc/relnotes/connector-j/en/news-8-0-9.html)
-- For a public/external MySQL endpoint, set `SMARTMED_DB_SSL_MODE=VERIFY_IDENTITY` and configure the database CA in the JVM truststore. Mount a deployment-managed truststore and set `JAVA_TOOL_OPTIONS` with `-Djavax.net.ssl.trustStore=file:/...`, `-Djavax.net.ssl.trustStoreType=PKCS12` (or its actual type), and `-Djavax.net.ssl.trustStorePassword=...`; keep the file and password out of Git. Connector/J uses the system truststore when no driver-specific truststore is configured. `VERIFY_IDENTITY` checks certificate trust and hostname identity. [MySQL Connector/J TLS configuration](https://dev.mysql.com/doc/connector-j/en/connector-j-connp-props-security.html)
-- Set `SMARTMED_JWT_SECRET` to a freshly generated `base64:` key with at least 32 cryptographically random bytes (generate with `openssl rand -base64 32`). Store it only as a Railway secret. Also set `SMARTMED_CORS_ORIGINS` to the exact frontend origin and `SMARTMED_TIMEZONE` to the deployment's calendar timezone.
-- Flyway applies database migrations at startup; Flyway clean is disabled. Hibernate is configured to `validate`, never create or update production tables. `/actuator/health/liveness` is the process probe; `/actuator/health/readiness` checks the database. `/api/v1/health` remains the simple application endpoint.
+- Build command: `npm run build`
+- Output directory: `dist`
+- Set `VITE_API_BASE_URL` to the HTTPS origin of the deployed backend, without an `/api` suffix.
+- Set `VITE_SMARTMED_TIMEZONE` to the intended application timezone.
+- Configure the backend's CORS origins to match the deployed frontend.
 
-The login and registration limiter is in-memory and bounded, suitable for a single backend instance. If the service is scaled across multiple instances, add shared edge or gateway rate limiting before relying on the application limiter across replicas.
+### Backend
 
-### Local development
+Configure the Railway service root as `backend`.
 
-Copy `.env.example` to `.env`, run `cd database && docker compose --env-file ../.env up -d`, then export `SMARTMED_DB_USERNAME=smartmed`, `SMARTMED_DB_PASSWORD` to the local example value, `SMARTMED_DB_SSL_MODE=DISABLED`, and a locally generated `base64:` JWT key before starting the backend. The disabled local MySQL TLS setting is only for loopback Docker development. Flyway initializes the local schema and Hibernate validates it. Start the frontend with `cd frontend && npm install && npm run dev`; local API calls use the Vite proxy.
+- Use Java 17 and the Maven Wrapper.
+- Build command: `./mvnw -B package -DskipTests`
+- Start command: `java -jar target/smartmed-backend-0.1.0-SNAPSHOT.jar`
+- Set `SPRING_PROFILES_ACTIVE=prod`.
+- Configure the database host, port, name, username, password, SSL mode, JWT secret, CORS origins, and timezone using deployment-managed variables.
+
+Use private networking and database TLS settings appropriate to the actual connection. Store secrets only in the deployment provider's secret configuration.
+
+Production readiness requires separate validation of deployment configuration, database migrations, security controls, monitoring, and failure handling. A deployment configuration alone is not evidence of a successful production deployment.
+
+---
+
+## ⚠️ Known Limitations
+
+SmartMed is an academic software prototype. Its limitations include:
+
+- The medication interaction checker uses a mock provider without real clinical data.
+- The application has not been clinically validated.
+- Adherence analytics depend on recorded application data.
+- The application has no demonstrated clinical outcome or efficacy results.
+- Formal security and privacy assessments are still needed.
+- Production deployment and load-test results should be independently verified.
+- Authentication rate limiting is instance-local and needs shared enforcement for multi-instance deployments.
+
+### Future Enhancements
+
+- Integrate a validated and appropriately licensed medication interaction data provider.
+- Strengthen audit logging and administrative role provisioning.
+- Review token-storage and session-security approaches.
+- Expand MySQL concurrency and integration testing.
+- Conduct formal privacy, security, accessibility, and usability assessments.
+- Improve monitoring and operational resilience.
+
+---
+
+## 📁 Project Structure
+
+```text
+SmartMed/
+├── backend/                  # Java + Spring Boot REST API
+├── database/                 # MySQL and database configuration
+├── docs/
+│   ├── ARCHITECTURE.md
+│   ├── AUTH.md
+│   ├── PROJECT_STRUCTURE.md
+│   └── project-documents/
+│       ├── NEW SMARTMED project report.pdf
+│       ├── SmartMed_IEEE_Research_Paper.pdf
+│       ├── SmartMed_Impactful_Project_Presentation.pptx
+│       └── SmartMed_SRS_IEEE_Style.pdf
+├── frontend/                 # React + TypeScript + Vite
+├── .env.example
+├── .gitignore
+├── Dockerfile
+└── README.md
+```
+
+The tree above illustrates the intended documentation layout. Keep the document filenames and paths consistent with the links in this README.
+
+---
+
+## 👥 Project Team
+
+**Department of Computer Science & Engineering**
+
+Arya College of Engineering & I.T., Jaipur  
+Rajasthan Technical University, Kota  
+Academic Session: 2026–27
+
+| Team Member | Enrollment Number |
+|---|---|
+| Aditya Mishra | 24EARCS010 |
+| Aditya Yadav | 24EARCS011 |
+| Badal Verma | 24EARCS038 |
+| Bhawna Sen | 24EARCS039 |
+
+---
+
+## 📌 Repository
+
+[GitHub Repository — SmartMed](https://github.com/adityaaa1811/SmartMed)
+
+---
+
+## 📄 License
+
+Add a `LICENSE` file to the repository if you intend to distribute the project under a specific open-source license.
+
+---
+
+**SmartMed — Organize medicines. Preserve dose history. Share care—with consent.**
