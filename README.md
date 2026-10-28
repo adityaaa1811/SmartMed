@@ -17,14 +17,14 @@ All major academic and technical documents for SmartMed are available below.
 | Document | Description | File |
 |---|---|---|
 | 📄 Project Report | Detailed project report covering the problem statement, objectives, feasibility, system design, implementation, testing, and future scope. | [View Project Report (PDF)](docs/project-documents/NEW%20SMARTMED%20project%20report.pdf) |
-| 📑 IEEE Research Paper | Research-style paper describing the architecture, security model, consent-based monitoring, data integrity, implementation, and verification approach. | [Read Research Paper (PDF)](docs/project-documents/SmartMed_IEEE_Research_Paper.pdf) |
+| 📑 IEEE Research Paper | Research-style paper describing the architecture, security model, consent-based monitoring, data integrity, implementation, and verification approach. | [Read Research Paper (PDF)](https://drive.google.com/file/d/1xfpmggbeITq9FlKnfAIg76UX7ZLeivmr/view?usp=drive_link) |
 | 🎯 Project Presentation | Visual presentation covering the problem, proposed solution, objectives, architecture, functional modules, security, workflows, limitations, and future enhancements. | [View Project Presentation (PPTX)](docs/project-documents/SmartMed_Impactful_Project_Presentation.pptx) |
 | 📋 Software Requirements Specification | IEEE-style SRS documenting functional requirements, non-functional requirements, interfaces, workflows, security, acceptance criteria, and traceability. | [Read SRS Document (PDF)](docs/project-documents/SmartMed_SRS_IEEE_Style.pdf) |
 
 ### Quick Access
 
 - [Project Report](docs/project-documents/NEW%20SMARTMED%20project%20report.pdf)
-- [IEEE Research Paper](docs/project-documents/SmartMed_IEEE_Research_Paper.pdf)
+- [IEEE Research Paper](https://drive.google.com/file/d/1xfpmggbeITq9FlKnfAIg76UX7ZLeivmr/view?usp=drive_link)
 - [Project Presentation](docs/project-documents/SmartMed_Impactful_Project_Presentation.pptx)
 - [Software Requirements Specification (SRS)](docs/project-documents/SmartMed_SRS_IEEE_Style.pdf)
 
